@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>CineTrack</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2503/2503508.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        /* --- THEME VIVANT (V20 Design) --- */
+        body {
+            background: radial-gradient(circle at top left, #1e293b, #0f172a);
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            overflow: hidden;
+        }
+
+        /* --- ANIMATIONS --- */
+        @keyframes popIn { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
+        .animate-pop { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .click-bounce:active { transform: scale(0.95); transition: 0.1s; }
+
+        /* --- UTILS --- */
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .pt-safe { padding-top: max(20px, env(safe-area-inset-top)); }
+        .pb-safe { padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+        
+        .glass-nav {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 10px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .btn-gradient {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+        
+        /* Google Button Style */
+        .google-btn {
+            background: white;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .google-btn:active { background: #e5e7eb; transform: scale(0.98); }
+    </style>
+</head>
+<body class="h-[100dvh] w-screen flex flex-col">
+
+    <header class="pt-safe px-6 pb-4 flex justify-between items-center z-30">
+        <div>
+            <h1 class="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                CineTrack <span id="online-indicator" class="hidden w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]"></span>
+            </h1>
+        </div>
+        <button onclick="window.toggleSettings()" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center click-bounce">
+            <i class="ph-bold ph-gear text-lg text-gray-300"></i>
+        </button>
+    </header>
+
+    <main class="flex-1 relative overflow-hidden">
+
+        <div id="view-library" class="absolute inset-0 overflow-y-auto hide-scroll p-5 pb-32">
+            
+            <div class="flex gap-3 mb-8 animate-pop" style="animation-delay: 0ms">
+                <div class="stat-card flex-1">
+                    <p id="stat-movies" class="text-xl font-black text-white">0</p>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase">Films</p>
+                </div>
+                <div class="stat-card flex-1">
+                    <p id="stat-eps" class="text-xl font-black text-white">0</p>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase">Épisodes</p>
+                </div>
+                <div class="stat-card flex-1">
+                    <p id="stat-time" class="text-xl font-black text-blue-400">0h</p>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase">Temps</p>
+                </div>
+            </div>
+
+            <div class="flex gap-2 mb-6 overflow-x-auto hide-scroll animate-pop" style="animation-delay: 50ms">
+                <button onclick="window.setFilter('all')" id="filter-all" class="px-5 py-2 rounded-full text-xs font-bold bg-white text-black shadow-lg transition">Tout</button>
+                <button onclick="window.setFilter('towatch')" id="filter-towatch" class="px-5 py-2 rounded-full text-xs font-bold bg-slate-800 text-gray-400 border border-white/5 transition">À voir</button>
+                <button onclick="window.setFilter('series')" id="filter-series" class="px-5 py-2 rounded-full text-xs font-bold bg-slate-800 text-gray-400 border border-white/5 transition">Séries</button>
+                <button onclick="window.setFilter('movies')" id="filter-movies" class="px-5 py-2 rounded-full text-xs font-bold bg-slate-800 text-gray-400 border border-white/5 transition">Films</button>
+            </div>
+
+            <div id="resume-section" class="hidden mb-8 animate-pop" style="animation-delay: 100ms">
+                <h2 class="text-xs font-bold text-blue-400 uppercase mb-3 flex items-center gap-2 px-1">
+                    <i class="ph-fill ph-play-circle"></i> Reprendre
+                </h2>
+                <div id="resume-list" class="flex gap-4 overflow-x-auto hide-scroll pb-4 px-1"></div>
+            </div>
+
+            <div id="library-grid" class="grid grid-cols-3 gap-3 animate-pop" style="animation-delay: 150ms"></div>
+
+            <div id="empty-state" class="hidden flex flex-col items-center justify-center mt-12 opacity-60">
+                <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-3">
+                    <i class="ph-duotone ph-film-strip text-3xl text-gray-500"></i>
+                </div>
+                <p class="text-sm font-medium">C'est vide ici.</p>
+                <button onclick="window.switchTab('search')" class="mt-4 px-6 py-2 bg-blue-600 rounded-full text-xs font-bold click-bounce">Ajouter un titre</button>
+            </div>
+        </div>
+
+        <div id="view-search" class="absolute inset-0 overflow-y-auto hide-scroll p-5 pb-32 hidden bg-[#0f172a]">
+            <h2 class="text-3xl font-black mb-6">Explorer</h2>
+            <div class="relative mb-6">
+                <input type="text" id="search-input" placeholder="Titanic, Breaking Bad..." 
+                       class="w-full bg-slate-800 text-white p-4 pl-12 rounded-2xl border border-white/10 focus:border-blue-500 outline-none text-lg font-bold shadow-inner">
+                <i class="ph-bold ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl"></i>
+            </div>
+            <div id="search-loader" class="hidden flex justify-center py-10"><i class="ph-duotone ph-spinner animate-spin text-4xl text-blue-500"></i></div>
+            <div id="search-results" class="space-y-3"></div>
+        </div>
+    </main>
+
+    <nav class="glass-nav fixed bottom-0 w-full pb-safe z-40">
+        <div class="flex justify-around items-center h-16">
+            <button onclick="window.switchTab('library')" id="nav-library" class="flex flex-col items-center w-16 text-blue-500 transition-colors click-bounce">
+                <i class="ph-fill ph-house text-2xl"></i>
+                <span class="text-[10px] font-bold mt-1">Accueil</span>
+            </button>
+            <button onclick="window.switchTab('search')" id="nav-search" class="flex flex-col items-center w-16 text-gray-500 transition-colors click-bounce">
+                <i class="ph-bold ph-magnifying-glass text-2xl"></i>
+                <span class="text-[10px] font-bold mt-1">Recherche</span>
+            </button>
+        </div>
+    </nav>
+
+    <div id="modal-overlay" class="fixed inset-0 bg-black/80 z-50 hidden transition-opacity duration-300" onclick="window.closeModal()"></div>
+    <div id="modal-sheet" class="fixed bottom-0 w-full h-[92vh] bg-[#0f172a] rounded-t-[32px] z-50 transform translate-y-full transition-transform duration-300 flex flex-col shadow-2xl">
+        <div class="relative w-full h-72 flex-shrink-0">
+            <img id="m-img" src="" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-transparent to-transparent"></div>
+            <button onclick="window.closeModal()" class="absolute top-4 right-4 w-10 h-10 bg-black/40 backdrop-blur rounded-full flex items-center justify-center text-white click-bounce"><i class="ph-bold ph-x"></i></button>
+            <div class="absolute bottom-0 w-full p-6">
+                <h2 id="m-title" class="text-3xl font-black leading-tight mb-2 text-white drop-shadow-lg">Titre</h2>
+                <div class="flex gap-2 text-xs font-bold text-gray-300">
+                    <span id="m-year" class="bg-white/10 px-2 py-1 rounded backdrop-blur">2024</span>
+                    <span id="m-type" class="bg-blue-500/20 text-blue-300 px-2 py-1 rounded backdrop-blur border border-blue-500/20">FILM</span>
+                    <span id="m-runtime" class="bg-white/10 px-2 py-1 rounded backdrop-blur">120m</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6 bg-[#0f172a]">
+            <div class="grid grid-cols-2 gap-4 mb-8">
+                <button onclick="window.setStatus('watched')" id="btn-watched" class="py-4 bg-slate-800 rounded-2xl font-bold text-gray-400 flex items-center justify-center gap-2 click-bounce transition border border-white/5"><i class="ph-bold ph-check-circle"></i> Vu</button>
+                <button onclick="window.setStatus('towatch')" id="btn-towatch" class="py-4 bg-slate-800 rounded-2xl font-bold text-gray-400 flex items-center justify-center gap-2 click-bounce transition border border-white/5"><i class="ph-bold ph-eye"></i> À voir</button>
+            </div>
+
+            <div id="series-ui" class="hidden mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest">Saisons</h3>
+                    <span id="status-badge" class="hidden text-[10px] font-black bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-3 py-1 rounded-full shadow-lg shadow-orange-500/20">TERMINÉE</span>
+                </div>
+                <div id="season-list" class="flex gap-3 overflow-x-auto hide-scroll mb-4"></div>
+                <div id="episode-list" class="space-y-2"></div>
+            </div>
+
+            <div id="rating-ui" class="hidden mb-8 bg-slate-900/50 p-4 rounded-2xl text-center border border-white/5">
+                <p class="text-[10px] font-bold text-gray-500 uppercase mb-3">Ma Note</p>
+                <div class="flex justify-center gap-4">
+                    <i onclick="window.rate(1)" class="ph-fill ph-star text-3xl star text-slate-700 transition click-bounce"></i>
+                    <i onclick="window.rate(2)" class="ph-fill ph-star text-3xl star text-slate-700 transition click-bounce"></i>
+                    <i onclick="window.rate(3)" class="ph-fill ph-star text-3xl star text-slate-700 transition click-bounce"></i>
+                    <i onclick="window.rate(4)" class="ph-fill ph-star text-3xl star text-slate-700 transition click-bounce"></i>
+                    <i onclick="window.rate(5)" class="ph-fill ph-star text-3xl star text-slate-700 transition click-bounce"></i>
+                </div>
+            </div>
+
+            <div class="mb-24">
+                <h3 class="text-sm font-bold text-gray-400 uppercase mb-4 tracking-widest">Casting</h3>
+                <div id="cast-list" class="flex gap-4 overflow-x-auto hide-scroll"></div>
+            </div>
+        </div>
+
+        <div class="absolute bottom-6 left-6 right-6 z-20">
+            <button onclick="window.saveItem()" class="w-full py-4 btn-gradient text-white font-black text-lg rounded-2xl shadow-xl click-bounce flex items-center justify-center gap-2">Enregistrer <i class="ph-bold ph-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/80 backdrop-blur-sm p-6" onclick="window.toggleSettings()">
+        <div class="bg-slate-900 w-full max-w-sm rounded-3xl p-6 border border-white/10 shadow-2xl" onclick="event.stopPropagation()">
+            <h2 class="text-xl font-bold mb-4 text-white">Réglages</h2>
+            
+            <div id="user-info" class="mb-6 hidden text-center">
+                <div class="w-16 h-16 rounded-full bg-blue-500 mx-auto mb-2 flex items-center justify-center text-2xl font-bold text-white uppercase" id="user-avatar">?</div>
+                <p id="user-email" class="text-sm font-bold text-white"></p>
+                <p class="text-xs text-green-400">Compte connecté</p>
+            </div>
+
+            <div class="space-y-3">
+                <button id="btn-login" onclick="window.loginGoogle()" class="w-full py-3 google-btn rounded-xl text-sm shadow-lg">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5">
+                    Se connecter avec Google
+                </button>
+                <button id="btn-logout" onclick="window.logoutGoogle()" class="hidden w-full py-3 bg-slate-800 rounded-xl font-bold text-sm text-gray-300">Se déconnecter</button>
+                
+                <hr class="border-white/10 my-4">
+                
+                <button onclick="window.resetAll()" class="w-full py-3 text-red-500 font-bold text-sm border border-red-500/20 rounded-xl">Vider le cache local</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // ----------------------------------------------------
+        // 1. IMPORT FIREBASE (Version 12.8.0)
+        // ----------------------------------------------------
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+        // ----------------------------------------------------
+        // 2. CONFIGURATION DE TON PROJET
+        // ----------------------------------------------------
+        const firebaseConfig = {
+            apiKey: "AIzaSyBasFR8ZaxPt05lU6TgGEz_Qf-hnzV6_No",
+            authDomain: "cinetrack-dd7c1.firebaseapp.com",
+            projectId: "cinetrack-dd7c1",
+            storageBucket: "cinetrack-dd7c1.firebasestorage.app",
+            messagingSenderId: "816079795855",
+            appId: "1:816079795855:web:d5e620ca45d7ed685222fa"
+        };
+
+        // Init Firebase
+        let app, auth, db, user = null;
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            console.log("Firebase initialized");
+        } catch(e) {
+            console.warn("Erreur config Firebase:", e);
+        }
+
+        // ----------------------------------------------------
+        // 3. LOGIC APP
+        // ----------------------------------------------------
+        const API_KEY = '3fd2be6f0c70a2a598f084ddfb75487c';
+        const BASE_URL = 'https://api.themoviedb.org/3';
+        const IMG_URL = 'https://image.tmdb.org/t/p/w300';
+        const IMG_HD = 'https://image.tmdb.org/t/p/w780';
+        const DB_KEY = 'cinetrack_v22_final';
+
+        let library = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+        let tempItem, tempStatus, tempRating, tempProgress, tempNext, tempEpsWatched;
+        let currentFilter = 'all';
+        let seasonCache = {};
+
+        // --- AUTH FUNCTIONS ---
+        window.loginGoogle = async () => {
+            if(!auth) return alert("Erreur Firebase, recharge la page.");
+            const provider = new GoogleAuthProvider();
+            try { await signInWithPopup(auth, provider); window.toggleSettings(); } 
+            catch(e) { alert(e.message); }
+        };
+
+        window.logoutGoogle = async () => {
+            if(!auth) return;
+            await signOut(auth);
+            window.toggleSettings();
+        };
+
+        // --- SYNC ENGINE ---
+        if(auth) {
+            onAuthStateChanged(auth, async (u) => {
+                user = u;
+                updateUserUI();
+                if (user) {
+                    // Load from Cloud
+                    try {
+                        const docRef = doc(db, "users", user.uid);
+                        const docSnap = await getDoc(docRef);
+                        if (docSnap.exists()) {
+                            library = docSnap.data().library || [];
+                            localStorage.setItem(DB_KEY, JSON.stringify(library));
+                            renderLibrary();
+                            refreshStats();
+                        } else {
+                            // First sync: Push local to cloud
+                            saveToCloud();
+                        }
+                    } catch(e) { console.error("Sync error:", e); }
+                }
+            });
+        }
+
+        async function saveToCloud() {
+            if (user && db) {
+                try {
+                    await setDoc(doc(db, "users", user.uid), { library: library });
+                } catch(e) { console.error("Save error:", e); }
+            }
+        }
+
+        function updateUserUI() {
+            const ind = document.getElementById('online-indicator');
+            const info = document.getElementById('user-info');
+            const btnIn = document.getElementById('btn-login');
+            const btnOut = document.getElementById('btn-logout');
+
+            if(user) {
+                ind.classList.remove('hidden');
+                info.classList.remove('hidden');
+                btnIn.classList.add('hidden');
+                btnOut.classList.remove('hidden');
+                document.getElementById('user-email').innerText = user.email;
+                document.getElementById('user-avatar').innerText = user.email[0].toUpperCase();
+            } else {
+                ind.classList.add('hidden');
+                info.classList.add('hidden');
+                btnIn.classList.remove('hidden');
+                btnOut.classList.add('hidden');
+            }
+        }
+
+        // --- APP FUNCTIONS ---
+        window.switchTab = (t) => {
+            ['library','search'].forEach(v=>{
+                document.getElementById('view-'+v).classList.add('hidden');
+                document.getElementById('nav-'+v).className="flex flex-col items-center w-16 text-gray-500 transition-colors click-bounce";
+            });
+            document.getElementById('view-'+t).classList.remove('hidden');
+            document.getElementById('nav-'+t).className="flex flex-col items-center w-16 text-blue-500 transition-colors click-bounce";
+            if(t==='library') { refreshStats(); renderLibrary(); }
+            if(t==='search') setTimeout(()=>document.getElementById('search-input').focus(), 100);
+        };
+
+        window.setFilter = (f) => {
+            currentFilter=f;
+            ['all','towatch','series','movies'].forEach(k=>{
+                const b=document.getElementById('filter-'+k);
+                b.className=(k===f)?"px-5 py-2 rounded-full text-xs font-bold bg-white text-black shadow-lg transition transform scale-105":"px-5 py-2 rounded-full text-xs font-bold bg-slate-800 text-gray-400 border border-white/5 transition";
+            });
+            renderLibrary();
+        };
+
+        function renderLibrary() {
+            const grid=document.getElementById('library-grid'), hero=document.getElementById('resume-section'), heroList=document.getElementById('resume-list');
+            grid.innerHTML=''; heroList.innerHTML='';
+            
+            const active=library.filter(i=>i.type==='tv'&&i.status==='series_active');
+            let main=library.filter(i=>!active.includes(i));
+            if(currentFilter==='movies') main=main.filter(i=>i.type==='movie');
+            if(currentFilter==='series') main=main.filter(i=>i.type==='tv');
+            if(currentFilter==='towatch') main=main.filter(i=>i.status==='towatch');
+
+            if(active.length>0 && currentFilter==='all') {
+                hero.classList.remove('hidden');
+                active.forEach(i=>{
+                    const d=document.createElement('div');
+                    d.className="flex-shrink-0 w-64 h-36 bg-slate-800 rounded-2xl relative overflow-hidden snap-start shadow-lg border border-white/5 cursor-pointer";
+                    const img = i.backdrop?IMG_HD+i.backdrop:(i.poster?IMG_URL+i.poster:'');
+                    d.innerHTML=`<img src="${img}" class="w-full h-full object-cover opacity-60" onerror="this.style.display='none'"><div class="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent"></div><div class="absolute bottom-3 left-4 right-4"><p class="text-[10px] font-bold text-blue-400 uppercase mb-0.5">S${i.next.s} EP${i.next.e}</p><p class="text-white font-bold truncate">${i.title}</p></div>`;
+                    d.onclick=()=>openDetails(i.tmdb_id, 'tv'); heroList.appendChild(d);
+                });
+            } else hero.classList.add('hidden');
+
+            if(main.length===0 && active.length===0) document.getElementById('empty-state').classList.remove('hidden');
+            else document.getElementById('empty-state').classList.add('hidden');
+
+            main.forEach(i=>{
+                const d=document.createElement('div'); d.className="relative aspect-[2/3] bg-slate-800 rounded-xl overflow-hidden shadow-lg animate-pop";
+                const img=i.poster?IMG_URL+i.poster:'';
+                let b=''; if(i.status==='towatch')b=`<div class="absolute top-2 right-2 w-2.5 h-2.5 bg-blue-500 rounded-full shadow-[0_0_10px_#3b82f6]"></div>`;
+                if(i.status==='finished')b=`<div class="absolute top-2 right-2 px-1.5 py-0.5 bg-yellow-400 text-black text-[8px] font-black rounded shadow">FINI</div>`;
+                d.innerHTML=`<img src="${img}" class="w-full h-full object-cover opacity-90" onerror="this.style.display='none'">${b}<button class="absolute inset-0" onclick="window.openDetails('${i.tmdb_id}','${i.type}')"></button>`;
+                grid.appendChild(d);
+            });
+        }
+
+        function refreshStats() {
+            let m=0,e=0,t=0;
+            library.forEach(i=>{
+                if(i.type==='movie'&&i.status==='watched'){m++;t+=(i.runtime||0);}
+                if(i.type==='tv'){e+=(i.epsWatched||0);t+=((i.epsWatched||0)*(i.runtime||40));}
+            });
+            document.getElementById('stat-movies').innerText=m; document.getElementById('stat-eps').innerText=e; document.getElementById('stat-time').innerText=`${Math.floor(t/60)}h`;
+        }
+
+        // Search
+        let timer;
+        document.getElementById('search-input').addEventListener('input', (e)=>{
+            clearTimeout(timer);
+            if(e.target.value.length>2) {
+                document.getElementById('search-loader').classList.remove('hidden'); document.getElementById('search-results').innerHTML='';
+                timer=setTimeout(()=>doSearch(e.target.value),500);
+            }
+        });
+        async function doSearch(q){
+            try{
+                const r=await fetch(`${BASE_URL}/search/multi?api_key=${API_KEY}&language=fr-FR&query=${encodeURIComponent(q)}&include_adult=false`);
+                const d=await r.json(); document.getElementById('search-loader').classList.add('hidden');
+                const l=document.getElementById('search-results'); l.innerHTML='';
+                d.results.filter(i=>(i.media_type==='movie'||i.media_type==='tv')&&i.poster_path).forEach(i=>{
+                    const div=document.createElement('div'); div.className="flex items-center gap-4 p-3 bg-slate-800/50 rounded-xl border border-white/5 cursor-pointer active:scale-95 transition";
+                    div.innerHTML=`<img src="${IMG_URL+i.poster_path}" class="w-12 h-16 rounded-lg object-cover bg-black"><div class="flex-1"><h4 class="font-bold text-white text-sm leading-tight">${i.media_type==='movie'?i.title:i.name}</h4><p class="text-[10px] text-gray-400 mt-1 uppercase font-bold">${i.media_type==='movie'?'Film':'Série'} • ${(i.release_date||i.first_air_date||'').slice(0,4)}</p></div>`;
+                    div.onclick=()=>window.openDetails(i.id,i.media_type); l.appendChild(div);
+                });
+            }catch(e){}
+        }
+
+        // Details
+        window.openDetails = async (id, type) => {
+            const [d,c] = await Promise.all([
+                fetch(`${BASE_URL}/${type}/${id}?api_key=${API_KEY}&language=fr-FR`).then(r=>r.json()),
+                fetch(`${BASE_URL}/${type}/${id}/credits?api_key=${API_KEY}&language=fr-FR`).then(r=>r.json())
+            ]);
+            tempItem={...d,type,tmdb_id:d.id.toString(),cast:c.cast?.slice(0,10)||[]};
+            const ex=library.find(i=>i.tmdb_id===tempItem.tmdb_id);
+            if(ex){tempStatus=ex.status;tempRating=ex.rating||0;tempProgress=ex.progress||{s:1,e:0};tempNext=ex.next||{s:1,e:1};tempEpsWatched=ex.epsWatched||0;}
+            else{tempStatus='towatch';tempRating=0;tempProgress={s:1,e:0};tempNext={s:1,e:1};tempEpsWatched=0;}
+
+            document.getElementById('m-title').innerText=type==='movie'?d.title:d.name;
+            document.getElementById('m-year').innerText=(type==='movie'?d.release_date:d.first_air_date)?.slice(0,4);
+            document.getElementById('m-type').innerText=type==='movie'?'FILM':'SÉRIE';
+            document.getElementById('m-runtime').innerText=type==='movie'?d.runtime+'m':(d.episode_run_time?.[0]||45)+'m';
+            document.getElementById('m-img').src=d.backdrop_path?IMG_HD+d.backdrop_path:IMG_URL+d.poster_path;
+            
+            const cl=document.getElementById('cast-list'); cl.innerHTML='';
+            tempItem.cast.forEach(a=>{if(a.profile_path)cl.innerHTML+=`<div class="flex-shrink-0 w-16 text-center"><img src="${IMG_URL+a.profile_path}" class="w-14 h-14 rounded-full object-cover mx-auto mb-1 bg-slate-800"><p class="text-[9px] text-gray-400 truncate">${a.name}</p></div>`;});
+
+            if(type==='tv'){
+                document.getElementById('series-ui').classList.remove('hidden'); document.getElementById('rating-ui').classList.add('hidden');
+                seasonCache={}; initSeasons(d.number_of_seasons);
+                document.getElementById('status-badge').classList.toggle('hidden', tempStatus!=='finished');
+            } else {
+                document.getElementById('series-ui').classList.add('hidden'); updateStatusUI();
+            }
+            document.getElementById('modal-overlay').classList.remove('hidden');
+            document.getElementById('modal-sheet').classList.remove('translate-y-full');
+        };
+
+        window.closeModal = () => {
+            document.getElementById('modal-sheet').classList.add('translate-y-full');
+            setTimeout(()=>document.getElementById('modal-overlay').classList.add('hidden'),300);
+        };
+
+        window.setStatus = (s) => { tempStatus=s; updateStatusUI(); if(s==='watched') confetti({particleCount:100,spread:70,origin:{y:0.6}}); };
+        function updateStatusUI(){
+            const w=document.getElementById('btn-watched'),t=document.getElementById('btn-towatch'),r=document.getElementById('rating-ui');
+            if(tempStatus==='watched'){
+                w.className="flex-1 py-4 bg-green-500 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 transition transform scale-105";
+                t.className="flex-1 py-4 bg-slate-800 text-gray-500 rounded-2xl font-bold flex items-center justify-center gap-2 transition";
+                if(tempItem.type==='movie')r.classList.remove('hidden');
+            } else {
+                w.className="flex-1 py-4 bg-slate-800 text-gray-500 rounded-2xl font-bold flex items-center justify-center gap-2 transition";
+                t.className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 transition transform scale-105";
+                r.classList.add('hidden');
+            }
+            renderStars();
+        }
+
+        window.rate = (n) => { tempRating=n; renderStars(); };
+        function renderStars() { document.querySelectorAll('.star').forEach((s,i)=>s.className=i<tempRating?"ph-fill ph-star text-3xl star text-yellow-400 click-bounce":"ph-fill ph-star text-3xl star text-slate-700"); }
+
+        function initSeasons(total) {
+            const l=document.getElementById('season-list'); l.innerHTML='';
+            for(let i=1;i<=total;i++){
+                const b=document.createElement('button'); b.innerText=i;
+                b.className=`flex-shrink-0 w-10 h-10 rounded-xl font-bold text-sm transition border border-white/5 ${i===tempProgress.s?'bg-blue-600 text-white shadow-lg':'bg-slate-800 text-gray-400'}`;
+                b.onclick=()=>loadEps(i); l.appendChild(b);
+            }
+            loadEps(tempProgress.s);
+        }
+
+        async function loadEps(sNum) {
+            Array.from(document.getElementById('season-list').children).forEach(b=>b.className=parseInt(b.innerText)===sNum?'flex-shrink-0 w-10 h-10 rounded-xl font-bold text-sm bg-blue-600 text-white shadow-lg transition border border-white/5':'flex-shrink-0 w-10 h-10 rounded-xl font-bold text-sm bg-slate-800 text-gray-400 transition border border-white/5');
+            if(!seasonCache[sNum]){const r=await fetch(`${BASE_URL}/tv/${tempItem.tmdb_id}/season/${sNum}?api_key=${API_KEY}&language=fr-FR`); seasonCache[sNum]=await r.json();}
+            const l=document.getElementById('episode-list'); l.innerHTML='';
+            seasonCache[sNum].episodes.forEach((ep,idx)=>{
+                const isSeen=(sNum<tempProgress.s)||(sNum===tempProgress.s && ep.episode_number<=tempProgress.e);
+                const d=document.createElement('div'); d.className=`flex justify-between items-center p-3 rounded-xl cursor-pointer ${isSeen?'bg-blue-900/20 border border-blue-500/20':'bg-slate-800 hover:bg-slate-700'}`;
+                d.innerHTML=`<div class="flex items-center gap-3 overflow-hidden"><span class="text-xs font-bold text-gray-500 w-6">${ep.episode_number}</span><span class="text-sm font-medium text-white truncate">${ep.name}</span></div><i class="ph-fill ${isSeen?'ph-check-circle text-blue-500':'ph-circle text-gray-600'} text-xl"></i>`;
+                d.onclick=()=>{
+                    tempProgress={s:sNum,e:ep.episode_number};
+                    const lastEp=(idx===seasonCache[sNum].episodes.length-1);
+                    if(lastEp && sNum===tempItem.number_of_seasons){
+                        tempStatus='finished';tempNext=null;
+                        document.getElementById('status-badge').classList.remove('hidden');
+                        confetti({particleCount:150,spread:100,origin:{y:0.6}});
+                    } else {
+                        tempStatus='series_active';
+                        document.getElementById('status-badge').classList.add('hidden');
+                        tempNext=lastEp?{s:sNum+1,e:1}:{s:sNum,e:ep.episode_number+1};
+                    }
+                    tempEpsWatched=((sNum-1)*10)+ep.episode_number; loadEps(sNum);
+                };
+                l.appendChild(d);
+            });
+        }
+
+        window.saveItem = () => {
+            if(!tempItem) return;
+            const item={
+                tmdb_id:tempItem.tmdb_id, title:tempItem.title||tempItem.name, type:tempItem.type,
+                poster:tempItem.poster_path, backdrop:tempItem.backdrop_path, runtime:tempItem.runtime,
+                status:tempItem.type==='movie'?tempStatus:(tempStatus||'series_active'),
+                rating:tempRating, progress:tempItem.type==='tv'?tempProgress:null, next:tempItem.type==='tv'?tempNext:null, epsWatched:tempItem.type==='tv'?tempEpsWatched:0
+            };
+            const idx=library.findIndex(i=>i.tmdb_id===item.tmdb_id);
+            if(idx>=0)library[idx]=item; else library.unshift(item);
+            localStorage.setItem(DB_KEY,JSON.stringify(library));
+            saveToCloud(); refreshStats(); renderLibrary(); closeModal(); window.switchTab('library');
+        };
+
+        window.toggleSettings=()=>document.getElementById('settings-modal').classList.toggle('hidden');
+        window.resetAll=()=>{if(confirm("Effacer tout ?")){localStorage.removeItem(DB_KEY);location.reload();}};
+    </script>
+</body>
+</html>
