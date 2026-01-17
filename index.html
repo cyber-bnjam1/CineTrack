@@ -3,20 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>CineTrack</title>
+    <title>CinéTrack</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0f172a">
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2503/2503508.png">
+    
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <style>
-        /* --- THEME VIVANT (V20 Design) --- */
+        /* --- THEME VIVANT (V22) --- */
         body {
             background: radial-gradient(circle at top left, #1e293b, #0f172a);
             color: white;
@@ -56,7 +58,6 @@
             box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
         }
         
-        /* Google Button Style */
         .google-btn {
             background: white;
             color: #1f2937;
@@ -75,7 +76,7 @@
     <header class="pt-safe px-6 pb-4 flex justify-between items-center z-30">
         <div>
             <h1 class="text-2xl font-black tracking-tight text-white flex items-center gap-2">
-                CineTrack <span id="online-indicator" class="hidden w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]"></span>
+                CinéTrack <span id="online-indicator" class="hidden w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]"></span>
             </h1>
         </div>
         <button onclick="window.toggleSettings()" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center click-bounce">
@@ -221,25 +222,17 @@
                     Se connecter avec Google
                 </button>
                 <button id="btn-logout" onclick="window.logoutGoogle()" class="hidden w-full py-3 bg-slate-800 rounded-xl font-bold text-sm text-gray-300">Se déconnecter</button>
-                
                 <hr class="border-white/10 my-4">
-                
                 <button onclick="window.resetAll()" class="w-full py-3 text-red-500 font-bold text-sm border border-red-500/20 rounded-xl">Vider le cache local</button>
             </div>
         </div>
     </div>
 
     <script type="module">
-        // ----------------------------------------------------
-        // 1. IMPORT FIREBASE (Version 12.8.0)
-        // ----------------------------------------------------
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-        // ----------------------------------------------------
-        // 2. CONFIGURATION DE TON PROJET
-        // ----------------------------------------------------
         const firebaseConfig = {
             apiKey: "AIzaSyBasFR8ZaxPt05lU6TgGEz_Qf-hnzV6_No",
             authDomain: "cinetrack-dd7c1.firebaseapp.com",
@@ -249,37 +242,29 @@
             appId: "1:816079795855:web:d5e620ca45d7ed685222fa"
         };
 
-        // Init Firebase
         let app, auth, db, user = null;
         try {
             app = initializeApp(firebaseConfig);
             auth = getAuth(app);
             db = getFirestore(app);
-            console.log("Firebase initialized");
-        } catch(e) {
-            console.warn("Erreur config Firebase:", e);
-        }
+            console.log("Firebase OK");
+        } catch(e) { console.warn("Firebase error", e); }
 
-        // ----------------------------------------------------
-        // 3. LOGIC APP
-        // ----------------------------------------------------
         const API_KEY = '3fd2be6f0c70a2a598f084ddfb75487c';
         const BASE_URL = 'https://api.themoviedb.org/3';
         const IMG_URL = 'https://image.tmdb.org/t/p/w300';
         const IMG_HD = 'https://image.tmdb.org/t/p/w780';
-        const DB_KEY = 'cinetrack_v22_final';
+        const DB_KEY = 'cinetrack_v23_pwa';
 
         let library = JSON.parse(localStorage.getItem(DB_KEY)) || [];
         let tempItem, tempStatus, tempRating, tempProgress, tempNext, tempEpsWatched;
         let currentFilter = 'all';
         let seasonCache = {};
 
-        // --- AUTH FUNCTIONS ---
         window.loginGoogle = async () => {
-            if(!auth) return alert("Erreur Firebase, recharge la page.");
+            if(!auth) return alert("Firebase error");
             const provider = new GoogleAuthProvider();
-            try { await signInWithPopup(auth, provider); window.toggleSettings(); } 
-            catch(e) { alert(e.message); }
+            try { await signInWithPopup(auth, provider); window.toggleSettings(); } catch(e){alert(e.message);}
         };
 
         window.logoutGoogle = async () => {
@@ -288,13 +273,11 @@
             window.toggleSettings();
         };
 
-        // --- SYNC ENGINE ---
         if(auth) {
             onAuthStateChanged(auth, async (u) => {
                 user = u;
                 updateUserUI();
                 if (user) {
-                    // Load from Cloud
                     try {
                         const docRef = doc(db, "users", user.uid);
                         const docSnap = await getDoc(docRef);
@@ -304,19 +287,16 @@
                             renderLibrary();
                             refreshStats();
                         } else {
-                            // First sync: Push local to cloud
                             saveToCloud();
                         }
-                    } catch(e) { console.error("Sync error:", e); }
+                    } catch(e) { console.error(e); }
                 }
             });
         }
 
         async function saveToCloud() {
             if (user && db) {
-                try {
-                    await setDoc(doc(db, "users", user.uid), { library: library });
-                } catch(e) { console.error("Save error:", e); }
+                try { await setDoc(doc(db, "users", user.uid), { library: library }); } catch(e){}
             }
         }
 
@@ -325,23 +305,15 @@
             const info = document.getElementById('user-info');
             const btnIn = document.getElementById('btn-login');
             const btnOut = document.getElementById('btn-logout');
-
             if(user) {
-                ind.classList.remove('hidden');
-                info.classList.remove('hidden');
-                btnIn.classList.add('hidden');
-                btnOut.classList.remove('hidden');
+                ind.classList.remove('hidden'); info.classList.remove('hidden'); btnIn.classList.add('hidden'); btnOut.classList.remove('hidden');
                 document.getElementById('user-email').innerText = user.email;
                 document.getElementById('user-avatar').innerText = user.email[0].toUpperCase();
             } else {
-                ind.classList.add('hidden');
-                info.classList.add('hidden');
-                btnIn.classList.remove('hidden');
-                btnOut.classList.add('hidden');
+                ind.classList.add('hidden'); info.classList.add('hidden'); btnIn.classList.remove('hidden'); btnOut.classList.add('hidden');
             }
         }
 
-        // --- APP FUNCTIONS ---
         window.switchTab = (t) => {
             ['library','search'].forEach(v=>{
                 document.getElementById('view-'+v).classList.add('hidden');
@@ -365,7 +337,6 @@
         function renderLibrary() {
             const grid=document.getElementById('library-grid'), hero=document.getElementById('resume-section'), heroList=document.getElementById('resume-list');
             grid.innerHTML=''; heroList.innerHTML='';
-            
             const active=library.filter(i=>i.type==='tv'&&i.status==='series_active');
             let main=library.filter(i=>!active.includes(i));
             if(currentFilter==='movies') main=main.filter(i=>i.type==='movie');
@@ -405,7 +376,6 @@
             document.getElementById('stat-movies').innerText=m; document.getElementById('stat-eps').innerText=e; document.getElementById('stat-time').innerText=`${Math.floor(t/60)}h`;
         }
 
-        // Search
         let timer;
         document.getElementById('search-input').addEventListener('input', (e)=>{
             clearTimeout(timer);
@@ -427,7 +397,6 @@
             }catch(e){}
         }
 
-        // Details
         window.openDetails = async (id, type) => {
             const [d,c] = await Promise.all([
                 fetch(`${BASE_URL}/${type}/${id}?api_key=${API_KEY}&language=fr-FR`).then(r=>r.json()),
@@ -443,7 +412,6 @@
             document.getElementById('m-type').innerText=type==='movie'?'FILM':'SÉRIE';
             document.getElementById('m-runtime').innerText=type==='movie'?d.runtime+'m':(d.episode_run_time?.[0]||45)+'m';
             document.getElementById('m-img').src=d.backdrop_path?IMG_HD+d.backdrop_path:IMG_URL+d.poster_path;
-            
             const cl=document.getElementById('cast-list'); cl.innerHTML='';
             tempItem.cast.forEach(a=>{if(a.profile_path)cl.innerHTML+=`<div class="flex-shrink-0 w-16 text-center"><img src="${IMG_URL+a.profile_path}" class="w-14 h-14 rounded-full object-cover mx-auto mb-1 bg-slate-800"><p class="text-[9px] text-gray-400 truncate">${a.name}</p></div>`;});
 
@@ -533,6 +501,11 @@
 
         window.toggleSettings=()=>document.getElementById('settings-modal').classList.toggle('hidden');
         window.resetAll=()=>{if(confirm("Effacer tout ?")){localStorage.removeItem(DB_KEY);location.reload();}};
+
+        // Service Worker registration
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').then(reg => console.log('SW reg', reg)).catch(err => console.log('SW err', err));
+        }
     </script>
 </body>
 </html>
