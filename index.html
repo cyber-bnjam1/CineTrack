@@ -26,13 +26,13 @@
             -webkit-tap-highlight-color: transparent;
             height: 100%;
             overflow: hidden;
-            display: flex; /* Sidebar à gauche, Contenu à droite */
+            display: flex;
             flex-direction: row; 
         }
 
-        /* --- SIDEBAR OPTIMISÉE (PLUS FINE) --- */
+        /* --- SIDEBAR --- */
         .glass-sidebar {
-            width: 64px; /* Réduit pour gagner de la place */
+            width: 64px;
             height: 100%;
             background: rgba(15, 23, 42, 0.95);
             backdrop-filter: blur(20px);
@@ -65,7 +65,7 @@
         }
         .nav-btn:active { transform: scale(0.9); }
 
-        /* --- CONTENU PRINCIPAL --- */
+        /* --- CONTENU --- */
         .main-content {
             flex: 1;
             height: 100%;
@@ -75,7 +75,7 @@
             flex-direction: column;
         }
 
-        /* --- DASHBOARD STATS (NOUVEAU DESIGN COMPACT) --- */
+        /* --- DASHBOARD --- */
         .dashboard-bar {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.05);
@@ -93,8 +93,7 @@
         .dash-val { font-size: 16px; font-weight: 800; color: white; line-height: 1.2; }
         .dash-lbl { font-size: 9px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
 
-        /* --- GRILLE INTELLIGENTE --- */
-        /* S'adapte automatiquement à la largeur restante sans trous */
+        /* --- GRID --- */
         .smart-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
@@ -120,22 +119,12 @@
 <body>
 
     <nav class="glass-sidebar">
-        <div class="mb-8 mt-4 text-blue-500">
-            <i class="ph-fill ph-film-strip text-3xl"></i>
-        </div>
-
+        <div class="mb-8 mt-4 text-blue-500"><i class="ph-fill ph-film-strip text-3xl"></i></div>
         <div class="flex-1 flex flex-col justify-center w-full items-center">
-            <button onclick="window.switchTab('library')" id="nav-library" class="nav-btn active">
-                <i class="ph-bold ph-house text-xl"></i>
-            </button>
-            <button onclick="window.switchTab('search')" id="nav-search" class="nav-btn">
-                <i class="ph-bold ph-magnifying-glass text-xl"></i>
-            </button>
+            <button onclick="window.switchTab('library')" id="nav-library" class="nav-btn active"><i class="ph-bold ph-house text-xl"></i></button>
+            <button onclick="window.switchTab('search')" id="nav-search" class="nav-btn"><i class="ph-bold ph-magnifying-glass text-xl"></i></button>
         </div>
-
-        <button onclick="window.toggleSettings()" class="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:text-white transition mt-auto active:bg-white/10">
-            <i class="ph-bold ph-gear text-lg"></i>
-        </button>
+        <button onclick="window.toggleSettings()" class="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:text-white transition mt-auto active:bg-white/10"><i class="ph-bold ph-gear text-lg"></i></button>
     </nav>
 
     <div class="main-content">
@@ -150,20 +139,10 @@
         </header>
 
         <div id="view-library" class="flex-1 overflow-y-auto hide-scroll p-4 pb-10">
-            
             <div class="dashboard-bar mb-6 animate-pop" style="animation-delay: 0ms">
-                <div class="dash-item">
-                    <p id="stat-movies" class="dash-val">0</p>
-                    <p class="dash-lbl">Films</p>
-                </div>
-                <div class="dash-item">
-                    <p id="stat-eps" class="dash-val">0</p>
-                    <p class="dash-lbl">Épisodes</p>
-                </div>
-                <div class="dash-item">
-                    <p id="stat-time" class="dash-val text-blue-400">0h</p>
-                    <p class="dash-lbl">Temps</p>
-                </div>
+                <div class="dash-item"><p id="stat-movies" class="dash-val">0</p><p class="dash-lbl">Films</p></div>
+                <div class="dash-item"><p id="stat-eps" class="dash-val">0</p><p class="dash-lbl">Épisodes</p></div>
+                <div class="dash-item"><p id="stat-time" class="dash-val text-blue-400">0h</p><p class="dash-lbl">Temps</p></div>
             </div>
 
             <div class="flex gap-2 mb-6 overflow-x-auto hide-scroll animate-pop" style="animation-delay: 50ms">
@@ -174,18 +153,14 @@
             </div>
 
             <div id="resume-section" class="hidden mb-6 animate-pop" style="animation-delay: 100ms">
-                <h2 class="text-[10px] font-bold text-blue-400 uppercase mb-3 flex items-center gap-1.5 px-1 tracking-wider">
-                    <i class="ph-fill ph-play-circle"></i> Reprendre
-                </h2>
+                <h2 class="text-[10px] font-bold text-blue-400 uppercase mb-3 flex items-center gap-1.5 px-1 tracking-wider"><i class="ph-fill ph-play-circle"></i> Reprendre</h2>
                 <div id="resume-list" class="flex gap-3 overflow-x-auto hide-scroll pb-2 px-1"></div>
             </div>
 
             <div id="library-grid" class="smart-grid animate-pop" style="animation-delay: 150ms"></div>
 
             <div id="empty-state" class="hidden flex flex-col items-center justify-center mt-12 opacity-50">
-                <div class="w-14 h-14 bg-slate-800 rounded-full flex items-center justify-center mb-3">
-                    <i class="ph-duotone ph-film-strip text-2xl text-gray-400"></i>
-                </div>
+                <div class="w-14 h-14 bg-slate-800 rounded-full flex items-center justify-center mb-3"><i class="ph-duotone ph-film-strip text-2xl text-gray-400"></i></div>
                 <p class="text-xs font-bold text-gray-400">Bibliothèque vide</p>
                 <button onclick="window.switchTab('search')" class="mt-4 px-5 py-2 bg-blue-600 rounded-full text-xs font-bold click-bounce">Ajouter</button>
             </div>
@@ -194,8 +169,7 @@
         <div id="view-search" class="hidden flex-1 overflow-y-auto hide-scroll p-4 pb-10">
             <h2 class="text-2xl font-black mb-4 px-1">Explorer</h2>
             <div class="relative mb-6">
-                <input type="text" id="search-input" placeholder="Titanic, Breaking Bad..." 
-                       class="w-full bg-slate-800 text-white p-3.5 pl-11 rounded-xl border border-white/10 focus:border-blue-500 outline-none text-base font-bold shadow-inner">
+                <input type="text" id="search-input" placeholder="Titanic, Breaking Bad..." class="w-full bg-slate-800 text-white p-3.5 pl-11 rounded-xl border border-white/10 focus:border-blue-500 outline-none text-base font-bold shadow-inner">
                 <i class="ph-bold ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg"></i>
             </div>
             <div id="search-loader" class="hidden flex justify-center py-10"><i class="ph-duotone ph-spinner animate-spin text-3xl text-blue-500"></i></div>
@@ -265,9 +239,7 @@
                 <p class="text-[10px] text-green-400 mt-1 uppercase font-bold">● Connecté</p>
             </div>
             <div class="space-y-3">
-                <button id="btn-login" onclick="window.loginGoogle()" class="w-full py-3 google-btn rounded-xl text-xs shadow-lg">
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-4 h-4"> Se connecter avec Google
-                </button>
+                <button id="btn-login" onclick="window.loginGoogle()" class="w-full py-3 google-btn rounded-xl text-xs shadow-lg"><img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-4 h-4"> Se connecter avec Google</button>
                 <button id="btn-logout" onclick="window.logoutGoogle()" class="hidden w-full py-3 bg-slate-800 rounded-xl font-bold text-xs text-gray-300 border border-white/10">Se déconnecter</button>
                 <hr class="border-white/10 my-4">
                 <button onclick="window.resetAll()" class="w-full py-3 text-red-500 font-bold text-xs border border-red-500/20 rounded-xl">Vider le cache</button>
@@ -301,7 +273,7 @@
         const BASE_URL = 'https://api.themoviedb.org/3';
         const IMG_URL = 'https://image.tmdb.org/t/p/w300';
         const IMG_HD = 'https://image.tmdb.org/t/p/w780';
-        const DB_KEY = 'cinetrack_v26_optimized';
+        const DB_KEY = 'cinetrack_v27_secure';
 
         let library = JSON.parse(localStorage.getItem(DB_KEY)) || [];
         let tempItem, tempStatus, tempRating, tempProgress, tempNext, tempEpsWatched;
@@ -339,8 +311,11 @@
 
         async function saveToCloud() {
             if (user && db) {
-                try { await setDoc(doc(db, "users", user.uid), { library: library }); } 
-                catch(e) { alert("Erreur Cloud: " + e.message); }
+                try { 
+                    // IMPORTANT: On utilise library qui est déjà nettoyé par saveItem
+                    // On ne devrait pas avoir de undefined ici si saveItem fait son job
+                    await setDoc(doc(db, "users", user.uid), { library: library });
+                } catch(e) { alert("Erreur Cloud: " + e.message); }
             }
         }
 
@@ -535,23 +510,38 @@
             });
         }
 
+        // --- CORRECTION CRITIQUE (Sanitization) ---
         window.saveItem = () => {
             if(!tempItem) return;
-            const item={
-                tmdb_id:tempItem.tmdb_id, title:tempItem.title||tempItem.name, type:tempItem.type,
-                poster:tempItem.poster_path, backdrop:tempItem.backdrop_path, runtime:tempItem.runtime,
-                status:tempItem.type==='movie'?tempStatus:(tempStatus||'series_active'),
-                rating:tempRating, progress:tempItem.type==='tv'?tempProgress:null, next:tempItem.type==='tv'?tempNext:null, epsWatched:tempItem.type==='tv'?tempEpsWatched:0
+            // On force les valeurs par défaut (null ou 0) pour éviter "undefined"
+            const item = {
+                tmdb_id: tempItem.tmdb_id,
+                title: tempItem.title || tempItem.name || "Titre inconnu",
+                type: tempItem.type,
+                poster: tempItem.poster_path || null,
+                backdrop: tempItem.backdrop_path || null,
+                runtime: tempItem.runtime || 0,
+                status: tempItem.type==='movie' ? tempStatus : (tempStatus || 'series_active'),
+                rating: tempRating || 0,
+                progress: tempItem.type==='tv' ? (tempProgress || null) : null,
+                next: tempItem.type==='tv' ? (tempNext || null) : null,
+                epsWatched: tempItem.type==='tv' ? (tempEpsWatched || 0) : 0
             };
-            const idx=library.findIndex(i=>i.tmdb_id===item.tmdb_id);
-            if(idx>=0)library[idx]=item; else library.unshift(item);
-            localStorage.setItem(DB_KEY,JSON.stringify(library));
-            saveToCloud(); refreshStats(); renderLibrary(); closeModal(); window.switchTab('library');
+            const idx = library.findIndex(i => i.tmdb_id === item.tmdb_id);
+            if(idx >= 0) library[idx] = item; else library.unshift(item);
+            
+            localStorage.setItem(DB_KEY, JSON.stringify(library));
+            saveToCloud();
+            refreshStats();
+            renderLibrary();
+            closeModal();
+            window.switchTab('library');
         };
 
         window.toggleSettings=()=>document.getElementById('settings-modal').classList.toggle('hidden');
         window.resetAll=()=>{if(confirm("Effacer tout ?")){localStorage.removeItem(DB_KEY);location.reload();}};
 
+        // PWA SW
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
     </script>
 </body>
