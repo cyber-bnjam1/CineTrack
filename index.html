@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>CinéTrack</title>
+    <title>CineTrack</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -18,13 +18,20 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <style>
-        /* --- THEME VIVANT (V22) --- */
+        /* --- CORRECTION BARRE BLANCHE IPHONE --- */
+        html {
+            background-color: #0f172a; /* Couleur de fond par défaut derrière le scroll */
+            height: 100%;
+        }
+
+        /* --- THEME VIVANT --- */
         body {
             background: radial-gradient(circle at top left, #1e293b, #0f172a);
             color: white;
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             -webkit-tap-highlight-color: transparent;
-            overflow: hidden;
+            height: 100%;
+            overflow: hidden; /* Empêche le rebond élastique de toute la page */
         }
 
         /* --- ANIMATIONS --- */
@@ -34,14 +41,22 @@
 
         /* --- UTILS --- */
         .hide-scroll::-webkit-scrollbar { display: none; }
+        
+        /* GESTION SAFE AREA (Encoche & Barre du bas) */
         .pt-safe { padding-top: max(20px, env(safe-area-inset-top)); }
-        .pb-safe { padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+        
+        /* Correction menu bas : on utilise padding-bottom pour pousser le contenu, 
+           mais le background ira jusqu'en bas */
+        .pb-safe-nav { 
+            padding-bottom: max(20px, env(safe-area-inset-bottom)); 
+            height: calc(60px + max(20px, env(safe-area-inset-bottom)));
+        }
         
         .glass-nav {
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-top: 1px solid rgba(255,255,255,0.1);
+            background: rgba(15, 23, 42, 0.90); /* Un peu plus opaque pour la lisibilité */
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255,255,255,0.08);
         }
 
         .stat-card {
@@ -71,7 +86,7 @@
         .google-btn:active { background: #e5e7eb; transform: scale(0.98); }
     </style>
 </head>
-<body class="h-[100dvh] w-screen flex flex-col">
+<body class="flex flex-col">
 
     <header class="pt-safe px-6 pb-4 flex justify-between items-center z-30">
         <div>
@@ -84,9 +99,9 @@
         </button>
     </header>
 
-    <main class="flex-1 relative overflow-hidden">
+    <main class="flex-1 relative overflow-hidden w-full">
 
-        <div id="view-library" class="absolute inset-0 overflow-y-auto hide-scroll p-5 pb-32">
+        <div id="view-library" class="absolute inset-0 overflow-y-auto hide-scroll p-5 pb-40">
             
             <div class="flex gap-3 mb-8 animate-pop" style="animation-delay: 0ms">
                 <div class="stat-card flex-1">
@@ -128,7 +143,7 @@
             </div>
         </div>
 
-        <div id="view-search" class="absolute inset-0 overflow-y-auto hide-scroll p-5 pb-32 hidden bg-[#0f172a]">
+        <div id="view-search" class="absolute inset-0 overflow-y-auto hide-scroll p-5 pb-40 hidden bg-[#0f172a]">
             <h2 class="text-3xl font-black mb-6">Explorer</h2>
             <div class="relative mb-6">
                 <input type="text" id="search-input" placeholder="Titanic, Breaking Bad..." 
@@ -140,8 +155,8 @@
         </div>
     </main>
 
-    <nav class="glass-nav fixed bottom-0 w-full pb-safe z-40">
-        <div class="flex justify-around items-center h-16">
+    <nav class="glass-nav fixed bottom-0 w-full z-40 pb-safe-nav">
+        <div class="flex justify-around items-center h-full pt-2 items-start">
             <button onclick="window.switchTab('library')" id="nav-library" class="flex flex-col items-center w-16 text-blue-500 transition-colors click-bounce">
                 <i class="ph-fill ph-house text-2xl"></i>
                 <span class="text-[10px] font-bold mt-1">Accueil</span>
@@ -233,6 +248,7 @@
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
+        // CONFIG FIREBASE FOURNIE PAR L'UTILISATEUR
         const firebaseConfig = {
             apiKey: "AIzaSyBasFR8ZaxPt05lU6TgGEz_Qf-hnzV6_No",
             authDomain: "cinetrack-dd7c1.firebaseapp.com",
@@ -254,7 +270,7 @@
         const BASE_URL = 'https://api.themoviedb.org/3';
         const IMG_URL = 'https://image.tmdb.org/t/p/w300';
         const IMG_HD = 'https://image.tmdb.org/t/p/w780';
-        const DB_KEY = 'cinetrack_v23_pwa';
+        const DB_KEY = 'cinetrack_v23_final';
 
         let library = JSON.parse(localStorage.getItem(DB_KEY)) || [];
         let tempItem, tempStatus, tempRating, tempProgress, tempNext, tempEpsWatched;
@@ -502,7 +518,6 @@
         window.toggleSettings=()=>document.getElementById('settings-modal').classList.toggle('hidden');
         window.resetAll=()=>{if(confirm("Effacer tout ?")){localStorage.removeItem(DB_KEY);location.reload();}};
 
-        // Service Worker registration
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').then(reg => console.log('SW reg', reg)).catch(err => console.log('SW err', err));
         }
