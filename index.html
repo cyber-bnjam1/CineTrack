@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>CineTrack</title>
+    <title>CineTrack Side</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0f172a">
     <link rel="manifest" href="manifest.json">
-    
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
 
@@ -18,7 +17,7 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <style>
-        /* --- CORRECTION FOND IOS --- */
+        /* --- LAYOUT SIDEBAR --- */
         html { background-color: #0f172a; height: 100%; }
         body {
             background: radial-gradient(circle at top left, #1e293b, #0f172a);
@@ -27,6 +26,53 @@
             -webkit-tap-highlight-color: transparent;
             height: 100%;
             overflow: hidden;
+            display: flex; /* Flex Row pour mettre la sidebar à gauche */
+            flex-direction: row; 
+        }
+
+        /* --- SIDEBAR STYLE --- */
+        .glass-sidebar {
+            width: 80px;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: max(20px, env(safe-area-inset-top));
+            padding-bottom: 20px;
+            z-index: 40;
+            flex-shrink: 0;
+        }
+
+        .nav-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            transition: all 0.2s;
+            margin-bottom: 20px;
+        }
+        .nav-btn.active {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.1);
+        }
+        .nav-btn:active { transform: scale(0.9); }
+
+        /* --- MAIN CONTENT --- */
+        .main-content {
+            flex: 1;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
         /* --- ANIMATIONS --- */
@@ -37,25 +83,7 @@
         /* --- UTILS --- */
         .hide-scroll::-webkit-scrollbar { display: none; }
         .pt-safe { padding-top: max(20px, env(safe-area-inset-top)); }
-        .pb-safe { padding-bottom: max(20px, env(safe-area-inset-bottom)); }
-
-        /* --- NAVIGATION BAR FIXED (IOS STYLE) --- */
-        .glass-nav {
-            background: rgba(15, 23, 42, 0.90);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255,255,255,0.08);
-            /* Le padding-bottom s'adapte à l'iPhone (Safe Area) */
-            padding-bottom: env(safe-area-inset-bottom);
-        }
         
-        .nav-content {
-            height: 60px; /* Hauteur fixe pour les icones */
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-        }
-
         .stat-card {
             background: rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.1);
@@ -80,25 +108,41 @@
             font-weight: bold;
             transition: all 0.2s;
         }
-        .google-btn:active { background: #e5e7eb; transform: scale(0.98); }
     </style>
 </head>
-<body class="flex flex-col">
+<body>
 
-    <header class="pt-safe px-6 pb-4 flex justify-between items-center z-30">
-        <div>
-            <h1 class="text-2xl font-black tracking-tight text-white flex items-center gap-2">
-                CinéTrack <span id="online-indicator" class="hidden w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]"></span>
-            </h1>
+    <nav class="glass-sidebar">
+        <div class="mb-10 mt-4 text-blue-500">
+            <i class="ph-fill ph-film-strip text-3xl"></i>
         </div>
-        <button onclick="window.toggleSettings()" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center click-bounce">
-            <i class="ph-bold ph-gear text-lg text-gray-300"></i>
+
+        <div class="flex-1 flex flex-col justify-center w-full items-center">
+            <button onclick="window.switchTab('library')" id="nav-library" class="nav-btn active">
+                <i class="ph-bold ph-house text-2xl"></i>
+            </button>
+            <button onclick="window.switchTab('search')" id="nav-search" class="nav-btn">
+                <i class="ph-bold ph-magnifying-glass text-2xl"></i>
+            </button>
+        </div>
+
+        <button onclick="window.toggleSettings()" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition mt-auto">
+            <i class="ph-bold ph-gear text-lg"></i>
         </button>
-    </header>
+    </nav>
 
-    <main class="flex-1 relative overflow-hidden w-full">
+    <div class="main-content">
+        
+        <header class="pt-safe px-6 pb-4 flex justify-between items-center z-30 bg-gradient-to-b from-[#0f172a] to-transparent">
+            <div>
+                <h1 class="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                    CinéTrack <span id="online-indicator" class="hidden w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]"></span>
+                </h1>
+            </div>
+            <div id="header-avatar" class="hidden w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold">U</div>
+        </header>
 
-        <div id="view-library" class="absolute inset-0 overflow-y-auto hide-scroll p-5 pb-32">
+        <div id="view-library" class="flex-1 overflow-y-auto hide-scroll p-6 pb-10">
             
             <div class="flex gap-3 mb-8 animate-pop" style="animation-delay: 0ms">
                 <div class="stat-card flex-1">
@@ -129,18 +173,18 @@
                 <div id="resume-list" class="flex gap-4 overflow-x-auto hide-scroll pb-4 px-1"></div>
             </div>
 
-            <div id="library-grid" class="grid grid-cols-3 gap-3 animate-pop" style="animation-delay: 150ms"></div>
+            <div id="library-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 animate-pop" style="animation-delay: 150ms"></div>
 
-            <div id="empty-state" class="hidden flex flex-col items-center justify-center mt-12 opacity-60">
+            <div id="empty-state" class="hidden flex flex-col items-center justify-center mt-20 opacity-60">
                 <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-3">
                     <i class="ph-duotone ph-film-strip text-3xl text-gray-500"></i>
                 </div>
-                <p class="text-sm font-medium">C'est vide ici.</p>
+                <p class="text-sm font-medium">Bibliothèque vide</p>
                 <button onclick="window.switchTab('search')" class="mt-4 px-6 py-2 bg-blue-600 rounded-full text-xs font-bold click-bounce">Ajouter un titre</button>
             </div>
         </div>
 
-        <div id="view-search" class="absolute inset-0 overflow-y-auto hide-scroll p-5 pb-32 hidden bg-[#0f172a]">
+        <div id="view-search" class="hidden flex-1 overflow-y-auto hide-scroll p-6 pb-10">
             <h2 class="text-3xl font-black mb-6">Explorer</h2>
             <div class="relative mb-6">
                 <input type="text" id="search-input" placeholder="Titanic, Breaking Bad..." 
@@ -150,23 +194,10 @@
             <div id="search-loader" class="hidden flex justify-center py-10"><i class="ph-duotone ph-spinner animate-spin text-4xl text-blue-500"></i></div>
             <div id="search-results" class="space-y-3"></div>
         </div>
-    </main>
-
-    <nav class="glass-nav fixed bottom-0 w-full z-40">
-        <div class="nav-content">
-            <button onclick="window.switchTab('library')" id="nav-library" class="flex flex-col items-center w-16 text-blue-500 transition-colors click-bounce">
-                <i class="ph-fill ph-house text-2xl"></i>
-                <span class="text-[10px] font-bold mt-1">Accueil</span>
-            </button>
-            <button onclick="window.switchTab('search')" id="nav-search" class="flex flex-col items-center w-16 text-gray-500 transition-colors click-bounce">
-                <i class="ph-bold ph-magnifying-glass text-2xl"></i>
-                <span class="text-[10px] font-bold mt-1">Recherche</span>
-            </button>
-        </div>
-    </nav>
+    </div>
 
     <div id="modal-overlay" class="fixed inset-0 bg-black/80 z-50 hidden transition-opacity duration-300" onclick="window.closeModal()"></div>
-    <div id="modal-sheet" class="fixed bottom-0 w-full h-[92vh] bg-[#0f172a] rounded-t-[32px] z-50 transform translate-y-full transition-transform duration-300 flex flex-col shadow-2xl">
+    <div id="modal-sheet" class="fixed bottom-0 right-0 w-full sm:w-[500px] h-[95vh] bg-[#0f172a] rounded-t-[32px] sm:rounded-l-[32px] sm:rounded-tr-none z-50 transform translate-y-full sm:translate-x-full sm:translate-y-0 transition-transform duration-300 flex flex-col shadow-2xl border-l border-white/10">
         <div class="relative w-full h-72 flex-shrink-0">
             <img id="m-img" src="" class="w-full h-full object-cover">
             <div class="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-transparent to-transparent"></div>
@@ -220,12 +251,12 @@
 
     <div id="settings-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/80 backdrop-blur-sm p-6" onclick="window.toggleSettings()">
         <div class="bg-slate-900 w-full max-w-sm rounded-3xl p-6 border border-white/10 shadow-2xl" onclick="event.stopPropagation()">
-            <h2 class="text-xl font-bold mb-4 text-white">Réglages</h2>
+            <h2 class="text-xl font-bold mb-4 text-white">Réglages & Synchro</h2>
             
             <div id="user-info" class="mb-6 hidden text-center">
                 <div class="w-16 h-16 rounded-full bg-blue-500 mx-auto mb-2 flex items-center justify-center text-2xl font-bold text-white uppercase" id="user-avatar">?</div>
                 <p id="user-email" class="text-sm font-bold text-white"></p>
-                <p class="text-xs text-green-400">Compte connecté</p>
+                <p class="text-xs text-green-400 mt-1">● Synchronisation active</p>
             </div>
 
             <div class="space-y-3">
@@ -233,7 +264,7 @@
                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5">
                     Se connecter avec Google
                 </button>
-                <button id="btn-logout" onclick="window.logoutGoogle()" class="hidden w-full py-3 bg-slate-800 rounded-xl font-bold text-sm text-gray-300">Se déconnecter</button>
+                <button id="btn-logout" onclick="window.logoutGoogle()" class="hidden w-full py-3 bg-slate-800 rounded-xl font-bold text-sm text-gray-300 border border-white/10">Se déconnecter</button>
                 <hr class="border-white/10 my-4">
                 <button onclick="window.resetAll()" class="w-full py-3 text-red-500 font-bold text-sm border border-red-500/20 rounded-xl">Vider le cache local</button>
             </div>
@@ -245,7 +276,7 @@
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-        // CONFIG FIREBASE
+        // FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyBasFR8ZaxPt05lU6TgGEz_Qf-hnzV6_No",
             authDomain: "cinetrack-dd7c1.firebaseapp.com",
@@ -261,31 +292,37 @@
             auth = getAuth(app);
             db = getFirestore(app);
             console.log("Firebase OK");
-        } catch(e) { console.warn("Firebase error", e); }
+        } catch(e) { console.warn("Firebase Init Error", e); }
 
         const API_KEY = '3fd2be6f0c70a2a598f084ddfb75487c';
         const BASE_URL = 'https://api.themoviedb.org/3';
         const IMG_URL = 'https://image.tmdb.org/t/p/w300';
         const IMG_HD = 'https://image.tmdb.org/t/p/w780';
-        const DB_KEY = 'cinetrack_v24_final';
+        const DB_KEY = 'cinetrack_v25_sidebar';
 
         let library = JSON.parse(localStorage.getItem(DB_KEY)) || [];
         let tempItem, tempStatus, tempRating, tempProgress, tempNext, tempEpsWatched;
         let currentFilter = 'all';
         let seasonCache = {};
 
+        // AUTH
         window.loginGoogle = async () => {
-            if(!auth) return alert("Firebase error");
+            if(!auth) return alert("Firebase non configuré.");
             const provider = new GoogleAuthProvider();
-            try { await signInWithPopup(auth, provider); window.toggleSettings(); } catch(e){alert(e.message);}
+            try { await signInWithPopup(auth, provider); window.toggleSettings(); } 
+            catch(e) { alert("Erreur connexion: " + e.message); }
         };
 
         window.logoutGoogle = async () => {
             if(!auth) return;
             await signOut(auth);
+            user = null;
+            updateUserUI();
+            alert("Déconnecté.");
             window.toggleSettings();
         };
 
+        // SYNC
         if(auth) {
             onAuthStateChanged(auth, async (u) => {
                 user = u;
@@ -300,44 +337,61 @@
                             renderLibrary();
                             refreshStats();
                         } else {
+                            // Si pas de données cloud, on envoie le local
                             saveToCloud();
                         }
-                    } catch(e) { console.error(e); }
+                    } catch(e) { console.error("Sync Error", e); }
                 }
             });
         }
 
         async function saveToCloud() {
             if (user && db) {
-                try { await setDoc(doc(db, "users", user.uid), { library: library }); } catch(e){}
+                try { 
+                    await setDoc(doc(db, "users", user.uid), { library: library });
+                } catch(e) { 
+                    alert("Erreur de sauvegarde Cloud ! Vérifiez vos règles Firestore.\n" + e.message);
+                }
             }
         }
 
         function updateUserUI() {
             const ind = document.getElementById('online-indicator');
+            const hAvatar = document.getElementById('header-avatar');
             const info = document.getElementById('user-info');
             const btnIn = document.getElementById('btn-login');
             const btnOut = document.getElementById('btn-logout');
+
             if(user) {
-                ind.classList.remove('hidden'); info.classList.remove('hidden'); btnIn.classList.add('hidden'); btnOut.classList.remove('hidden');
+                ind.classList.remove('hidden');
+                hAvatar.classList.remove('hidden'); hAvatar.innerText = user.email[0].toUpperCase();
+                info.classList.remove('hidden');
+                btnIn.classList.add('hidden');
+                btnOut.classList.remove('hidden');
                 document.getElementById('user-email').innerText = user.email;
                 document.getElementById('user-avatar').innerText = user.email[0].toUpperCase();
             } else {
-                ind.classList.add('hidden'); info.classList.add('hidden'); btnIn.classList.remove('hidden'); btnOut.classList.add('hidden');
+                ind.classList.add('hidden');
+                hAvatar.classList.add('hidden');
+                info.classList.add('hidden');
+                btnIn.classList.remove('hidden');
+                btnOut.classList.add('hidden');
             }
         }
 
+        // NAVIGATION
         window.switchTab = (t) => {
             ['library','search'].forEach(v=>{
                 document.getElementById('view-'+v).classList.add('hidden');
-                document.getElementById('nav-'+v).className="flex flex-col items-center w-16 text-gray-500 transition-colors click-bounce";
+                document.getElementById('nav-'+v).classList.remove('active');
             });
             document.getElementById('view-'+t).classList.remove('hidden');
-            document.getElementById('nav-'+t).className="flex flex-col items-center w-16 text-blue-500 transition-colors click-bounce";
+            document.getElementById('nav-'+t).classList.add('active');
             if(t==='library') { refreshStats(); renderLibrary(); }
             if(t==='search') setTimeout(()=>document.getElementById('search-input').focus(), 100);
         };
 
+        // UI LOGIC (Same as before)
         window.setFilter = (f) => {
             currentFilter=f;
             ['all','towatch','series','movies'].forEach(k=>{
@@ -371,7 +425,7 @@
             else document.getElementById('empty-state').classList.add('hidden');
 
             main.forEach(i=>{
-                const d=document.createElement('div'); d.className="relative aspect-[2/3] bg-slate-800 rounded-xl overflow-hidden shadow-lg animate-pop";
+                const d=document.createElement('div'); d.className="relative aspect-[2/3] bg-slate-800 rounded-xl overflow-hidden shadow-lg animate-pop cursor-pointer";
                 const img=i.poster?IMG_URL+i.poster:'';
                 let b=''; if(i.status==='towatch')b=`<div class="absolute top-2 right-2 w-2.5 h-2.5 bg-blue-500 rounded-full shadow-[0_0_10px_#3b82f6]"></div>`;
                 if(i.status==='finished')b=`<div class="absolute top-2 right-2 px-1.5 py-0.5 bg-yellow-400 text-black text-[8px] font-black rounded shadow">FINI</div>`;
@@ -436,11 +490,14 @@
                 document.getElementById('series-ui').classList.add('hidden'); updateStatusUI();
             }
             document.getElementById('modal-overlay').classList.remove('hidden');
-            document.getElementById('modal-sheet').classList.remove('translate-y-full');
+            const sheet = document.getElementById('modal-sheet');
+            sheet.classList.remove('translate-y-full', 'sm:translate-x-full'); // Reset transforms
         };
 
         window.closeModal = () => {
-            document.getElementById('modal-sheet').classList.add('translate-y-full');
+            const sheet = document.getElementById('modal-sheet');
+            if(window.innerWidth >= 640) sheet.classList.add('sm:translate-x-full');
+            else sheet.classList.add('translate-y-full');
             setTimeout(()=>document.getElementById('modal-overlay').classList.add('hidden'),300);
         };
 
@@ -515,9 +572,8 @@
         window.toggleSettings=()=>document.getElementById('settings-modal').classList.toggle('hidden');
         window.resetAll=()=>{if(confirm("Effacer tout ?")){localStorage.removeItem(DB_KEY);location.reload();}};
 
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').then(reg => console.log('SW reg', reg)).catch(err => console.log('SW err', err));
-        }
+        // PWA SW
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
     </script>
 </body>
 </html>
