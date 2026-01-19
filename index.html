@@ -9,7 +9,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0f172a">
     <link rel="manifest" href="manifest.json">
-    
     <link rel="icon" type="image/png" href="icon2.png">
     <link rel="apple-touch-icon" href="icon2.png">
 
@@ -102,21 +101,32 @@
             gap: 12px;
         }
 
-        /* --- PROVIDERS --- */
+        /* --- NEW STYLES V34 --- */
         .provider-logo { width: 36px; height: 36px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); }
+        
+        /* TIMELINE CSS */
+        .timeline-line { position: absolute; left: 19px; top: 0; bottom: 0; width: 2px; background: rgba(255,255,255,0.1); z-index: 0; }
+        .timeline-dot { width: 12px; height: 12px; border-radius: 50%; background: #3b82f6; border: 2px solid #0f172a; z-index: 10; position: relative; }
+        
+        /* BADGES CSS */
+        .badge-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; opacity: 0.4; filter: grayscale(100%); transition: all 0.3s; }
+        .badge-card.unlocked { opacity: 1; filter: grayscale(0%); background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); box-shadow: 0 0 15px rgba(59, 130, 246, 0.1); }
+        
+        /* DYNAMIC THEMES */
+        .theme-horror { background: linear-gradient(to top, #0f172a 20%, #450a0a); }
+        .theme-comedy { background: linear-gradient(to top, #0f172a 20%, #713f12); }
+        .theme-scifi { background: linear-gradient(to top, #0f172a 20%, #1e1b4b); }
+        .theme-romance { background: linear-gradient(to top, #0f172a 20%, #831843); }
+        .theme-action { background: linear-gradient(to top, #0f172a 20%, #1e3a8a); }
+        .theme-default { background: #0f172a; }
 
         /* --- UTILS --- */
         .hide-scroll::-webkit-scrollbar { display: none; }
         .pt-safe { padding-top: max(20px, env(safe-area-inset-top)); }
-        
         @keyframes popIn { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
         .animate-pop { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         .click-bounce:active { transform: scale(0.95); transition: 0.1s; }
-        
-        .btn-gradient {
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
-        }
+        .btn-gradient { background: linear-gradient(135deg, #3b82f6, #8b5cf6); box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); }
         .google-btn { background: white; color: #1f2937; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: bold; transition: all 0.2s; }
     </style>
 </head>
@@ -128,7 +138,7 @@
             <button onclick="window.switchTab('home')" id="nav-home" class="nav-btn active"><i class="ph-bold ph-house text-xl"></i></button>
             <button onclick="window.switchTab('movies')" id="nav-movies" class="nav-btn"><i class="ph-bold ph-film-strip text-xl"></i></button>
             <button onclick="window.switchTab('series')" id="nav-series" class="nav-btn"><i class="ph-bold ph-television text-xl"></i></button>
-            <button onclick="window.switchTab('stats')" id="nav-stats" class="nav-btn"><i class="ph-bold ph-chart-pie-slice text-xl"></i></button>
+            <button onclick="window.switchTab('journal')" id="nav-journal" class="nav-btn"><i class="ph-bold ph-book-bookmark text-xl"></i></button> <button onclick="window.switchTab('stats')" id="nav-stats" class="nav-btn"><i class="ph-bold ph-chart-pie-slice text-xl"></i></button>
             <button onclick="window.switchTab('search')" id="nav-search" class="nav-btn"><i class="ph-bold ph-magnifying-glass text-xl"></i></button>
         </div>
         <button onclick="window.toggleSettings()" class="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:text-white transition mt-auto active:bg-white/10"><i class="ph-bold ph-gear text-lg"></i></button>
@@ -168,43 +178,57 @@
             <div id="search-results" class="space-y-2"></div>
         </div>
 
+        <div id="view-journal" class="hidden flex-1 overflow-y-auto hide-scroll p-4 pb-10 pl-6">
+             <h2 class="text-2xl font-black mb-6 animate-pop">Timeline</h2>
+             <div id="journal-list" class="relative space-y-6 animate-pop"></div>
+        </div>
+
         <div id="view-stats" class="hidden flex-1 overflow-y-auto hide-scroll p-4 pb-10">
             <div class="mb-8 animate-pop">
                 <h2 class="text-sm font-bold text-gray-400 uppercase mb-3 px-1 tracking-widest"><i class="ph-fill ph-calendar-blank"></i> Prochaines Sorties</h2>
                 <div id="calendar-list" class="space-y-2"><p class="text-xs text-gray-500 italic p-2">Chargement...</p></div>
             </div>
+
             <div class="mb-8 animate-pop" style="animation-delay: 100ms">
+                <h2 class="text-sm font-bold text-gray-400 uppercase mb-3 px-1 tracking-widest"><i class="ph-fill ph-trophy"></i> Trophées</h2>
+                <div id="badge-grid" class="grid grid-cols-3 gap-3"></div>
+            </div>
+
+            <div class="mb-8 animate-pop" style="animation-delay: 200ms">
                 <h2 class="text-sm font-bold text-gray-400 uppercase mb-3 px-1 tracking-widest"><i class="ph-fill ph-chart-pie-slice"></i> Répartition</h2>
                 <div class="bg-slate-800/50 p-4 rounded-2xl border border-white/5 h-64 relative"><canvas id="typeChart"></canvas></div>
             </div>
-            <div class="mb-8 animate-pop" style="animation-delay: 200ms">
-                <h2 class="text-sm font-bold text-gray-400 uppercase mb-3 px-1 tracking-widest"><i class="ph-fill ph-tag"></i> Top Genres</h2>
-                <div id="genre-bars" class="space-y-3"></div>
+
+            <div class="mb-8 animate-pop" style="animation-delay: 300ms">
+                <h2 class="text-sm font-bold text-gray-400 uppercase mb-3 px-1 tracking-widest"><i class="ph-fill ph-globe"></i> Passeport Ciné</h2>
+                <div id="passport-grid" class="flex flex-wrap gap-2 p-3 bg-slate-800/30 rounded-2xl border border-white/5">
+                    <p class="text-xs text-gray-500 italic w-full text-center">Ajoutez des films pour voyager...</p>
+                </div>
             </div>
         </div>
     </div>
 
     <div id="modal-overlay" class="fixed inset-0 bg-black/80 z-50 hidden transition-opacity duration-300" onclick="window.closeModal()"></div>
-    <div id="modal-sheet" class="fixed bottom-0 right-0 w-full sm:w-[500px] h-[95vh] bg-[#0f172a] rounded-t-[32px] sm:rounded-l-[32px] sm:rounded-tr-none z-50 transform translate-y-full sm:translate-x-full sm:translate-y-0 transition-transform duration-300 flex flex-col shadow-2xl border-l border-white/10">
+    <div id="modal-sheet" class="fixed bottom-0 right-0 w-full sm:w-[500px] h-[95vh] bg-[#0f172a] rounded-t-[32px] sm:rounded-l-[32px] sm:rounded-tr-none z-50 transform translate-y-full sm:translate-x-full sm:translate-y-0 transition-transform duration-300 flex flex-col shadow-2xl border-l border-white/10 transition-colors duration-500">
+        
         <div class="relative w-full h-64 flex-shrink-0">
             <img id="m-img" src="" class="w-full h-full object-cover">
-            <div class="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-transparent to-transparent"></div>
-            
-            <button onclick="window.closeModal()" class="absolute top-16 right-5 w-10 h-10 bg-black/40 backdrop-blur rounded-full flex items-center justify-center text-white click-bounce shadow-lg border border-white/10 z-50">
+            <div class="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-transparent to-transparent" id="modal-gradient"></div> <button onclick="window.closeModal()" class="absolute top-16 right-5 w-10 h-10 bg-black/40 backdrop-blur rounded-full flex items-center justify-center text-white click-bounce shadow-lg border border-white/10 z-50">
                 <i class="ph-bold ph-x text-lg"></i>
             </button>
 
             <div class="absolute bottom-0 w-full p-6">
                 <h2 id="m-title" class="text-2xl font-black leading-tight mb-2 text-white drop-shadow-lg">Titre</h2>
-                <div class="flex gap-2 text-xs font-bold text-gray-300">
+                <div class="flex flex-wrap gap-2 text-xs font-bold text-gray-300">
                     <span id="m-year" class="bg-white/10 px-2 py-0.5 rounded backdrop-blur">2024</span>
                     <span id="m-type" class="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded backdrop-blur border border-blue-500/20">FILM</span>
                     <span id="m-runtime" class="bg-white/10 px-2 py-0.5 rounded backdrop-blur">120m</span>
                 </div>
+                <p id="binge-time" class="hidden text-xs font-bold text-orange-400 mt-2 flex items-center gap-1 animate-pop"><i class="ph-fill ph-timer"></i> <span>Calcul...</span></p>
             </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-6 bg-[#0f172a]">
+        <div class="flex-1 overflow-y-auto p-6 transition-colors duration-500" id="modal-body">
             <div id="providers-ui" class="hidden mb-6">
                 <h3 class="text-[10px] font-bold text-gray-500 uppercase mb-2">Disponible sur</h3>
                 <div id="providers-list" class="flex gap-2 overflow-x-auto hide-scroll pb-2"></div>
@@ -276,7 +300,7 @@
         const firebaseConfig = { apiKey: "AIzaSyBasFR8ZaxPt05lU6TgGEz_Qf-hnzV6_No", authDomain: "cinetrack-dd7c1.firebaseapp.com", projectId: "cinetrack-dd7c1", storageBucket: "cinetrack-dd7c1.firebasestorage.app", messagingSenderId: "816079795855", appId: "1:816079795855:web:d5e620ca45d7ed685222fa" };
         let app, auth, db, user = null; try { app = initializeApp(firebaseConfig); auth = getAuth(app); db = getFirestore(app); console.log("Firebase OK"); } catch(e) { console.warn("Firebase Init Error", e); }
 
-        const API_KEY = '3fd2be6f0c70a2a598f084ddfb75487c'; const BASE_URL = 'https://api.themoviedb.org/3'; const IMG_URL = 'https://image.tmdb.org/t/p/w300'; const IMG_HD = 'https://image.tmdb.org/t/p/w780'; const DB_KEY = 'cinetrack_v33_newicon';
+        const API_KEY = '3fd2be6f0c70a2a598f084ddfb75487c'; const BASE_URL = 'https://api.themoviedb.org/3'; const IMG_URL = 'https://image.tmdb.org/t/p/w300'; const IMG_HD = 'https://image.tmdb.org/t/p/w780'; const DB_KEY = 'cinetrack_v34_extended';
         let library = JSON.parse(localStorage.getItem(DB_KEY)) || []; let tempItem, tempStatus, tempRating, tempProgress, tempNext, tempEpsWatched; let currentTab = 'home'; let seasonCache = {}; let myChart = null;
 
         window.loginGoogle = async () => { if(!auth) return alert("Err Firebase"); try { await signInWithPopup(auth, new GoogleAuthProvider()); window.toggleSettings(); } catch(e) { alert(e.message); } };
@@ -285,22 +309,153 @@
         async function saveToCloud() { if(user && db) try { await setDoc(doc(db, "users", user.uid), { library }); } catch(e){} }
         function updateUserUI() { const elIds = ['online-indicator','header-avatar','user-info','btn-logout']; const hideIds = ['btn-login']; elIds.forEach(id => document.getElementById(id).classList.toggle('hidden', !user)); hideIds.forEach(id => document.getElementById(id).classList.toggle('hidden', !!user)); if(user) { document.getElementById('user-email').innerText = user.email; document.getElementById('user-avatar').innerText = user.email[0].toUpperCase(); document.getElementById('header-avatar').innerText = user.email[0].toUpperCase(); } }
 
-        window.switchTab = (t) => { ['home','movies','series','search','stats'].forEach(k => document.getElementById('nav-'+k).classList.remove('active')); document.getElementById('nav-'+t).classList.add('active'); ['view-search','view-library','view-stats'].forEach(id => document.getElementById(id).classList.add('hidden')); const titles = { 'home': 'À voir', 'movies': 'Films Vus', 'series': 'Séries Finies', 'search': 'Recherche', 'stats': 'Statistiques' }; document.getElementById('page-title').innerHTML = `${titles[t]} <span id="online-indicator" class="${user?'':'hidden'} w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]"></span>`; if(t === 'search') { document.getElementById('view-search').classList.remove('hidden'); setTimeout(()=>document.getElementById('search-input').focus(), 100); } else if(t === 'stats') { document.getElementById('view-stats').classList.remove('hidden'); renderStatsView(); } else { currentTab = t; document.getElementById('view-library').classList.remove('hidden'); renderLibrary(); } };
+        // --- NAVIGATION ---
+        window.switchTab = (t) => {
+            ['home','movies','series','search','stats','journal'].forEach(k => document.getElementById('nav-'+k).classList.remove('active'));
+            document.getElementById('nav-'+t).classList.add('active');
+            ['view-search','view-library','view-stats','view-journal'].forEach(id => document.getElementById(id).classList.add('hidden'));
 
+            const titles = { 'home': 'À voir', 'movies': 'Films Vus', 'series': 'Séries Finies', 'search': 'Recherche', 'stats': 'Statistiques', 'journal': 'Journal' };
+            document.getElementById('page-title').innerHTML = `${titles[t]} <span id="online-indicator" class="${user?'':'hidden'} w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]"></span>`;
+
+            if(t === 'search') { document.getElementById('view-search').classList.remove('hidden'); setTimeout(()=>document.getElementById('search-input').focus(), 100); }
+            else if(t === 'stats') { document.getElementById('view-stats').classList.remove('hidden'); renderStatsView(); }
+            else if(t === 'journal') { document.getElementById('view-journal').classList.remove('hidden'); renderJournal(); }
+            else { currentTab = t; document.getElementById('view-library').classList.remove('hidden'); renderLibrary(); }
+        };
+
+        // --- RENDER FUNCTIONS ---
         function renderLibrary() { const grid = document.getElementById('library-grid'); const resumeSection = document.getElementById('resume-section'); const resumeList = document.getElementById('resume-list'); grid.innerHTML = ''; resumeList.innerHTML = ''; let itemsToShow = []; if (currentTab === 'home') { itemsToShow = library.filter(i => i.status === 'towatch' || i.status === 'series_active'); const resumeItems = library.filter(i => i.type === 'tv' && i.status === 'series_active'); if (resumeItems.length > 0) { resumeSection.classList.remove('hidden'); resumeItems.forEach(i => { const d = document.createElement('div'); d.className = "flex-shrink-0 w-48 h-28 bg-slate-800 rounded-xl relative overflow-hidden snap-start shadow-lg border border-white/5 cursor-pointer"; const img = i.backdrop ? IMG_HD+i.backdrop : (i.poster ? IMG_URL+i.poster : ''); d.innerHTML = `<img src="${img}" class="w-full h-full object-cover opacity-60" onerror="this.style.display='none'"><div class="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent"></div><div class="absolute bottom-2 left-3 right-3"><p class="text-[9px] font-bold text-blue-400 uppercase mb-0.5">S${i.next.s} EP${i.next.e}</p><p class="text-white font-bold truncate text-xs">${i.title}</p></div>`; d.onclick = () => openDetails(i.tmdb_id, 'tv'); resumeList.appendChild(d); }); } else { resumeSection.classList.add('hidden'); } } else { resumeSection.classList.add('hidden'); if (currentTab === 'movies') itemsToShow = library.filter(i => i.type === 'movie' && i.status === 'watched'); else if (currentTab === 'series') itemsToShow = library.filter(i => i.type === 'tv' && i.status === 'finished'); } if (itemsToShow.length === 0) { document.getElementById('empty-state').classList.remove('hidden'); } else { document.getElementById('empty-state').classList.add('hidden'); itemsToShow.forEach(i => { const d = document.createElement('div'); d.className = "relative aspect-[2/3] bg-slate-800 rounded-xl overflow-hidden shadow-lg animate-pop cursor-pointer"; const img = i.poster ? IMG_URL+i.poster : ''; let badge = ''; if(i.status === 'towatch') badge = `<div class="absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_8px_#3b82f6]"></div>`; if(i.status === 'finished') badge = `<div class="absolute top-2 right-2 px-1 py-0.5 bg-yellow-400 text-black text-[7px] font-black rounded shadow">FINI</div>`; d.innerHTML = `<img src="${img}" class="w-full h-full object-cover opacity-90" onerror="this.style.display='none'">${badge}<button class="absolute inset-0" onclick="window.openDetails('${i.tmdb_id}','${i.type}')"></button>`; grid.appendChild(d); }); } }
 
-        async function renderStatsView() { const calList = document.getElementById('calendar-list'); calList.innerHTML = '<div class="flex justify-center p-2"><i class="ph-duotone ph-spinner animate-spin text-blue-500"></i></div>'; const activeSeries = library.filter(i => i.type === 'tv' && i.status === 'series_active'); if(activeSeries.length > 0) { calList.innerHTML = ''; for(const s of activeSeries) { try { const r = await fetch(`${BASE_URL}/tv/${s.tmdb_id}?api_key=${API_KEY}&language=fr-FR`); const d = await r.json(); if(d.next_episode_to_air) { const date = new Date(d.next_episode_to_air.air_date).toLocaleDateString('fr-FR', {day:'numeric', month:'short'}); const div = document.createElement('div'); div.className = "flex justify-between items-center p-3 bg-slate-800/50 rounded-xl border border-white/5"; div.innerHTML = `<div class="flex items-center gap-3"><img src="${IMG_URL+s.poster}" class="w-8 h-10 rounded bg-black object-cover"><div class="text-xs"><p class="font-bold text-white">${s.title}</p><p class="text-blue-400">S${d.next_episode_to_air.season_number} E${d.next_episode_to_air.episode_number}</p></div></div><div class="text-right"><p class="text-xs font-bold text-white">${date}</p></div>`; calList.appendChild(div); } } catch(e){} } if(calList.innerHTML === '') calList.innerHTML = '<p class="text-xs text-gray-500 italic p-2 text-center">Aucun épisode à venir détecté.</p>'; } else { calList.innerHTML = '<p class="text-xs text-gray-500 italic p-2 text-center">Aucune série en cours.</p>'; } const ctx = document.getElementById('typeChart').getContext('2d'); if(myChart) myChart.destroy(); const movies = library.filter(i=>i.type==='movie').length; const series = library.filter(i=>i.type==='tv').length; myChart = new Chart(ctx, { type: 'doughnut', data: { labels: ['Films', 'Séries'], datasets: [{ data: [movies, series], backgroundColor: ['#3b82f6', '#8b5cf6'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: 'white', font: {size: 10} } } } } }); document.getElementById('genre-bars').innerHTML = ` <div class="flex items-center gap-2"><span class="text-xs w-16">À Voir</span><div class="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden"><div class="h-full bg-blue-500" style="width:${(library.filter(i=>i.status==='towatch').length/library.length)*100}%"></div></div></div> <div class="flex items-center gap-2"><span class="text-xs w-16">Terminés</span><div class="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden"><div class="h-full bg-green-500" style="width:${(library.filter(i=>['watched','finished'].includes(i.status)).length/library.length)*100}%"></div></div></div> `; }
+        function renderJournal() {
+            const l = document.getElementById('journal-list'); l.innerHTML='';
+            const sorted = [...library].sort((a,b)=>(b.date||0) - (a.date||0));
+            if(sorted.length===0) { l.innerHTML = '<p class="text-center text-gray-500 italic mt-10">Aucune activité récente.</p>'; return; }
+            sorted.forEach(i => {
+                const dateStr = i.date ? new Date(i.date).toLocaleDateString('fr-FR', {day:'numeric', month:'long'}) : 'Inconnu';
+                const d = document.createElement('div'); d.className="relative pl-8";
+                d.innerHTML = `<div class="timeline-line"></div><div class="absolute left-4 top-1 timeline-dot"></div>
+                <div class="flex gap-4 items-center bg-slate-800/40 p-3 rounded-xl border border-white/5">
+                    <img src="${IMG_URL+i.poster}" class="w-10 h-14 rounded object-cover bg-black">
+                    <div>
+                        <p class="text-xs text-blue-400 font-bold mb-0.5">${dateStr}</p>
+                        <p class="font-bold text-sm text-white leading-tight">${i.title}</p>
+                        <p class="text-[10px] text-gray-400 mt-1">${i.status==='watched'?'Vu':(i.status==='towatch'?'À voir':'En cours')}</p>
+                    </div>
+                </div>`;
+                l.appendChild(d);
+            });
+        }
 
+        async function renderStatsView() {
+            // CALENDAR
+            const calList = document.getElementById('calendar-list'); calList.innerHTML = '<div class="flex justify-center p-2"><i class="ph-duotone ph-spinner animate-spin text-blue-500"></i></div>';
+            const activeSeries = library.filter(i => i.type === 'tv' && i.status === 'series_active');
+            if(activeSeries.length > 0) { calList.innerHTML = ''; for(const s of activeSeries) { try { const r = await fetch(`${BASE_URL}/tv/${s.tmdb_id}?api_key=${API_KEY}&language=fr-FR`); const d = await r.json(); if(d.next_episode_to_air) { const date = new Date(d.next_episode_to_air.air_date).toLocaleDateString('fr-FR', {day:'numeric', month:'short'}); const div = document.createElement('div'); div.className = "flex justify-between items-center p-3 bg-slate-800/50 rounded-xl border border-white/5"; div.innerHTML = `<div class="flex items-center gap-3"><img src="${IMG_URL+s.poster}" class="w-8 h-10 rounded bg-black object-cover"><div class="text-xs"><p class="font-bold text-white">${s.title}</p><p class="text-blue-400">S${d.next_episode_to_air.season_number} E${d.next_episode_to_air.episode_number}</p></div></div><div class="text-right"><p class="text-xs font-bold text-white">${date}</p></div>`; calList.appendChild(div); } } catch(e){} } if(calList.innerHTML === '') calList.innerHTML = '<p class="text-xs text-gray-500 italic p-2 text-center">Aucun épisode à venir détecté.</p>'; } else { calList.innerHTML = '<p class="text-xs text-gray-500 italic p-2 text-center">Aucune série en cours.</p>'; }
+            
+            // CHART
+            const ctx = document.getElementById('typeChart').getContext('2d'); if(myChart) myChart.destroy();
+            const movies = library.filter(i=>i.type==='movie').length; const series = library.filter(i=>i.type==='tv').length;
+            myChart = new Chart(ctx, { type: 'doughnut', data: { labels: ['Films', 'Séries'], datasets: [{ data: [movies, series], backgroundColor: ['#3b82f6', '#8b5cf6'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: 'white', font: {size: 10} } } } } });
+
+            // BADGES
+            const badges = [
+                { id: 'beginner', name: 'Débutant', icon: 'ph-baby', cond: library.length >= 1 },
+                { id: 'watcher', name: 'Cinéphile', icon: 'ph-film-strip', cond: library.filter(i=>i.type==='movie'&&i.status==='watched').length >= 10 },
+                { id: 'binger', name: 'Binge Watcher', icon: 'ph-television', cond: library.filter(i=>i.type==='tv'&&i.status==='finished').length >= 3 },
+                { id: 'critic', name: 'Critique', icon: 'ph-star', cond: library.filter(i=>i.rating>0).length >= 5 },
+                { id: 'voyager', name: 'Voyageur', icon: 'ph-globe', cond: new Set(library.map(i=>i.origin).flat()).size >= 5 },
+                { id: 'collector', name: 'Collection', icon: 'ph-stack', cond: library.length >= 50 }
+            ];
+            const bg = document.getElementById('badge-grid'); bg.innerHTML='';
+            badges.forEach(b => {
+                const d = document.createElement('div'); d.className = `badge-card ${b.cond?'unlocked':''}`;
+                d.innerHTML = `<i class="ph-fill ${b.icon} text-2xl mb-1 ${b.cond?'text-blue-400':'text-gray-600'}"></i><p class="text-[9px] font-bold uppercase">${b.name}</p>`;
+                bg.appendChild(d);
+            });
+
+            // PASSPORT
+            const countries = {}; 
+            library.forEach(i => { if(i.origin) i.origin.forEach(c => countries[c] = (countries[c]||0)+1 ); });
+            const pg = document.getElementById('passport-grid');
+            if(Object.keys(countries).length > 0) {
+                pg.innerHTML = '';
+                Object.keys(countries).forEach(code => {
+                    const span = document.createElement('span'); span.className = "text-xl cursor-default"; span.title = code;
+                    // Simple flag mapping via text (works on most OS)
+                    span.innerText = getFlagEmoji(code);
+                    pg.appendChild(span);
+                });
+            }
+        }
+
+        function getFlagEmoji(countryCode) {
+            const codePoints = countryCode.toUpperCase().split('').map(char =>  127397 + char.charCodeAt());
+            return String.fromCodePoint(...codePoints);
+        }
+
+        // --- SEARCH & DETAILS ---
         let timer; const searchInput = document.getElementById('search-input'); const clearBtn = document.getElementById('search-clear'); searchInput.addEventListener('input', (e)=>{ clearTimeout(timer); if(e.target.value.length>0) clearBtn.classList.remove('hidden'); else clearBtn.classList.add('hidden'); if(e.target.value.length>2) { document.getElementById('search-loader').classList.remove('hidden'); document.getElementById('search-results').innerHTML=''; timer=setTimeout(()=>doSearch(e.target.value),500); } else { document.getElementById('search-results').innerHTML=''; document.getElementById('search-loader').classList.add('hidden'); } }); window.clearSearch = () => { searchInput.value = ''; clearBtn.classList.add('hidden'); document.getElementById('search-results').innerHTML = ''; document.getElementById('search-loader').classList.add('hidden'); searchInput.focus(); }; async function doSearch(q){ try{ const r=await fetch(`${BASE_URL}/search/multi?api_key=${API_KEY}&language=fr-FR&query=${encodeURIComponent(q)}&include_adult=false`); const d=await r.json(); document.getElementById('search-loader').classList.add('hidden'); const l=document.getElementById('search-results'); l.innerHTML=''; d.results.filter(i=>(i.media_type==='movie'||i.media_type==='tv')&&i.poster_path).forEach(i=>{ const div=document.createElement('div'); div.className="flex items-center gap-3 p-2 bg-slate-800/50 rounded-xl border border-white/5 cursor-pointer active:scale-95 transition"; div.innerHTML=`<img src="${IMG_URL+i.poster_path}" class="w-10 h-14 rounded-lg object-cover bg-black"><div class="flex-1"><h4 class="font-bold text-white text-sm leading-tight">${i.media_type==='movie'?i.title:i.name}</h4><p class="text-[10px] text-gray-400 mt-0.5 uppercase font-bold">${i.media_type==='movie'?'Film':'Série'} • ${(i.release_date||i.first_air_date||'').slice(0,4)}</p></div>`; div.onclick=()=>window.openDetails(i.id,i.media_type); l.appendChild(div); }); }catch(e){} }
 
-        window.openDetails = async (id, type) => { const [d,c,p,r] = await Promise.all([ fetch(`${BASE_URL}/${type}/${id}?api_key=${API_KEY}&language=fr-FR`).then(r=>r.json()), fetch(`${BASE_URL}/${type}/${id}/credits?api_key=${API_KEY}&language=fr-FR`).then(r=>r.json()), fetch(`${BASE_URL}/${type}/${id}/watch/providers?api_key=${API_KEY}`).then(r=>r.json()), fetch(`${BASE_URL}/${type}/${id}/recommendations?api_key=${API_KEY}&language=fr-FR`).then(r=>r.json()) ]); tempItem={...d,type,tmdb_id:d.id.toString(),cast:c.cast?.slice(0,10)||[]}; const ex=library.find(i=>i.tmdb_id===tempItem.tmdb_id); if(ex){tempStatus=ex.status;tempRating=ex.rating||0;tempProgress=ex.progress||{s:1,e:0};tempNext=ex.next||{s:1,e:1};tempEpsWatched=ex.epsWatched||0;} else{tempStatus='towatch';tempRating=0;tempProgress={s:1,e:0};tempNext={s:1,e:1};tempEpsWatched=0;} document.getElementById('m-title').innerText=type==='movie'?d.title:d.name; document.getElementById('m-year').innerText=(type==='movie'?d.release_date:d.first_air_date)?.slice(0,4); document.getElementById('m-type').innerText=type==='movie'?'FILM':'SÉRIE'; document.getElementById('m-runtime').innerText=type==='movie'?d.runtime+'m':(d.episode_run_time?.[0]||45)+'m'; document.getElementById('m-img').src=d.backdrop_path?IMG_HD+d.backdrop_path:IMG_URL+d.poster_path; const cl=document.getElementById('cast-list'); cl.innerHTML=''; tempItem.cast.forEach(a=>{if(a.profile_path)cl.innerHTML+=`<div class="flex-shrink-0 w-14 text-center"><img src="${IMG_URL+a.profile_path}" class="w-12 h-12 rounded-full object-cover mx-auto mb-1 bg-slate-800"><p class="text-[8px] text-gray-400 truncate">${a.name}</p></div>`;}); const pl=document.getElementById('providers-list'); const pu=document.getElementById('providers-ui'); pl.innerHTML=''; if(p.results && p.results.FR && p.results.FR.flatrate) { pu.classList.remove('hidden'); p.results.FR.flatrate.forEach(pv => { pl.innerHTML+=`<img src="${IMG_URL+pv.logo_path}" class="provider-logo" title="${pv.provider_name}">`; }); } else { pu.classList.add('hidden'); } const rl=document.getElementById('reco-list'); rl.innerHTML=''; r.results.slice(0,6).forEach(rec => { if(rec.poster_path) { const div = document.createElement('div'); div.className="flex-shrink-0 w-24 cursor-pointer"; div.innerHTML=`<img src="${IMG_URL+rec.poster_path}" class="w-full h-36 rounded-lg object-cover bg-slate-800"><p class="text-[9px] text-gray-400 truncate mt-1 text-center">${rec.title||rec.name}</p>`; div.onclick=()=>window.openDetails(rec.id, type); rl.appendChild(div); } }); if(type==='tv'){ document.getElementById('series-ui').classList.remove('hidden'); document.getElementById('rating-ui').classList.add('hidden'); seasonCache={}; initSeasons(d.number_of_seasons); document.getElementById('status-badge').classList.toggle('hidden', tempStatus!=='finished'); } else { document.getElementById('series-ui').classList.add('hidden'); updateStatusUI(); } document.getElementById('modal-overlay').classList.remove('hidden'); const sheet=document.getElementById('modal-sheet'); sheet.classList.remove('translate-y-full','sm:translate-x-full'); };
+        window.openDetails = async (id, type) => {
+            const [d,c,p,r] = await Promise.all([ fetch(`${BASE_URL}/${type}/${id}?api_key=${API_KEY}&language=fr-FR`).then(r=>r.json()), fetch(`${BASE_URL}/${type}/${id}/credits?api_key=${API_KEY}&language=fr-FR`).then(r=>r.json()), fetch(`${BASE_URL}/${type}/${id}/watch/providers?api_key=${API_KEY}`).then(r=>r.json()), fetch(`${BASE_URL}/${type}/${id}/recommendations?api_key=${API_KEY}&language=fr-FR`).then(r=>r.json()) ]);
+            tempItem={...d,type,tmdb_id:d.id.toString(),cast:c.cast?.slice(0,10)||[]};
+            
+            // DYNAMIC THEME LOGIC
+            const genres = d.genres.map(g => g.id);
+            const sheet = document.getElementById('modal-sheet');
+            const body = document.getElementById('modal-body');
+            const grad = document.getElementById('modal-gradient');
+            sheet.classList.remove('theme-horror','theme-comedy','theme-scifi','theme-romance','theme-action','theme-default');
+            grad.className = "absolute inset-0 bg-gradient-to-t via-transparent to-transparent "; // Reset base
+
+            let theme = 'theme-default';
+            let gradColor = 'from-[#0f172a]';
+            if(genres.includes(27)) { theme='theme-horror'; gradColor='from-[#450a0a]'; } // Horror
+            else if(genres.includes(35)) { theme='theme-comedy'; gradColor='from-[#713f12]'; } // Comedy
+            else if(genres.includes(878)) { theme='theme-scifi'; gradColor='from-[#1e1b4b]'; } // SciFi
+            else if(genres.includes(10749)) { theme='theme-romance'; gradColor='from-[#831843]'; } // Romance
+            else if(genres.includes(28)) { theme='theme-action'; gradColor='from-[#1e3a8a]'; } // Action
+            
+            sheet.classList.add(theme);
+            grad.classList.add(gradColor);
+
+            // BINGE TIME LOGIC
+            const bingeEl = document.getElementById('binge-time');
+            if(type === 'tv' && d.episode_run_time && d.number_of_episodes) {
+                const ex = library.find(i=>i.tmdb_id===tempItem.tmdb_id);
+                const watched = ex ? (ex.epsWatched || 0) : 0;
+                const remaining = d.number_of_episodes - watched;
+                if(remaining > 0) {
+                    const totalMins = remaining * (d.episode_run_time[0] || 45);
+                    const days = Math.floor(totalMins / (60*24));
+                    const hours = Math.floor((totalMins % (60*24)) / 60);
+                    bingeEl.innerHTML = `<i class="ph-fill ph-timer"></i> Reste ${days}j ${hours}h`;
+                    bingeEl.classList.remove('hidden');
+                } else bingeEl.classList.add('hidden');
+            } else bingeEl.classList.add('hidden');
+
+            const ex=library.find(i=>i.tmdb_id===tempItem.tmdb_id); if(ex){tempStatus=ex.status;tempRating=ex.rating||0;tempProgress=ex.progress||{s:1,e:0};tempNext=ex.next||{s:1,e:1};tempEpsWatched=ex.epsWatched||0;} else{tempStatus='towatch';tempRating=0;tempProgress={s:1,e:0};tempNext={s:1,e:1};tempEpsWatched=0;} 
+            document.getElementById('m-title').innerText=type==='movie'?d.title:d.name; document.getElementById('m-year').innerText=(type==='movie'?d.release_date:d.first_air_date)?.slice(0,4); document.getElementById('m-type').innerText=type==='movie'?'FILM':'SÉRIE'; document.getElementById('m-runtime').innerText=type==='movie'?d.runtime+'m':(d.episode_run_time?.[0]||45)+'m'; document.getElementById('m-img').src=d.backdrop_path?IMG_HD+d.backdrop_path:IMG_URL+d.poster_path; const cl=document.getElementById('cast-list'); cl.innerHTML=''; tempItem.cast.forEach(a=>{if(a.profile_path)cl.innerHTML+=`<div class="flex-shrink-0 w-14 text-center"><img src="${IMG_URL+a.profile_path}" class="w-12 h-12 rounded-full object-cover mx-auto mb-1 bg-slate-800"><p class="text-[8px] text-gray-400 truncate">${a.name}</p></div>`;}); const pl=document.getElementById('providers-list'); const pu=document.getElementById('providers-ui'); pl.innerHTML=''; if(p.results && p.results.FR && p.results.FR.flatrate) { pu.classList.remove('hidden'); p.results.FR.flatrate.forEach(pv => { pl.innerHTML+=`<img src="${IMG_URL+pv.logo_path}" class="provider-logo" title="${pv.provider_name}">`; }); } else { pu.classList.add('hidden'); } const rl=document.getElementById('reco-list'); rl.innerHTML=''; r.results.slice(0,6).forEach(rec => { if(rec.poster_path) { const div = document.createElement('div'); div.className="flex-shrink-0 w-24 cursor-pointer"; div.innerHTML=`<img src="${IMG_URL+rec.poster_path}" class="w-full h-36 rounded-lg object-cover bg-slate-800"><p class="text-[9px] text-gray-400 truncate mt-1 text-center">${rec.title||rec.name}</p>`; div.onclick=()=>window.openDetails(rec.id, type); rl.appendChild(div); } }); if(type==='tv'){ document.getElementById('series-ui').classList.remove('hidden'); document.getElementById('rating-ui').classList.add('hidden'); seasonCache={}; initSeasons(d.number_of_seasons); document.getElementById('status-badge').classList.toggle('hidden', tempStatus!=='finished'); } else { document.getElementById('series-ui').classList.add('hidden'); updateStatusUI(); } document.getElementById('modal-overlay').classList.remove('hidden'); sheet.classList.remove('translate-y-full','sm:translate-x-full'); };
+        
         window.closeModal = () => { const sheet=document.getElementById('modal-sheet'); if(window.innerWidth>=640)sheet.classList.add('sm:translate-x-full'); else sheet.classList.add('translate-y-full'); setTimeout(()=>document.getElementById('modal-overlay').classList.add('hidden'),300); };
         window.setStatus = (s) => { tempStatus=s; updateStatusUI(); if(s==='watched') confetti({particleCount:100,spread:70,origin:{y:0.6}}); };
         function updateStatusUI(){ const w=document.getElementById('btn-watched'),t=document.getElementById('btn-towatch'),r=document.getElementById('rating-ui'); if(tempStatus==='watched'){ w.className="flex-1 py-3.5 bg-green-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 transition transform scale-105"; t.className="flex-1 py-3.5 bg-slate-800 text-gray-400 rounded-xl font-bold flex items-center justify-center gap-2 transition"; if(tempItem.type==='movie')r.classList.remove('hidden'); } else { w.className="flex-1 py-3.5 bg-slate-800 text-gray-400 rounded-xl font-bold flex items-center justify-center gap-2 transition"; t.className="flex-1 py-3.5 bg-blue-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 transition transform scale-105"; r.classList.add('hidden'); } renderStars(); }
         window.rate=(n)=>{tempRating=n;renderStars();}; function renderStars(){document.querySelectorAll('.star').forEach((s,i)=>s.className=i<tempRating?"ph-fill ph-star text-3xl star text-yellow-400 click-bounce":"ph-fill ph-star text-3xl star text-slate-700");}
         function initSeasons(t){const l=document.getElementById('season-list');l.innerHTML='';for(let i=1;i<=t;i++){const b=document.createElement('button');b.innerText=i;b.className=`flex-shrink-0 w-9 h-9 rounded-lg font-bold text-xs transition border border-white/5 ${i===tempProgress.s?'bg-blue-600 text-white shadow-lg':'bg-slate-800 text-gray-400'}`;b.onclick=()=>loadEps(i);l.appendChild(b);}loadEps(tempProgress.s);}
         async function loadEps(s){Array.from(document.getElementById('season-list').children).forEach(b=>b.className=parseInt(b.innerText)===s?'flex-shrink-0 w-9 h-9 rounded-lg font-bold text-xs bg-blue-600 text-white shadow-lg transition border border-white/5':'flex-shrink-0 w-9 h-9 rounded-lg font-bold text-xs bg-slate-800 text-gray-400 transition border border-white/5');if(!seasonCache[s])seasonCache[s]=await fetch(`${BASE_URL}/tv/${tempItem.tmdb_id}/season/${s}?api_key=${API_KEY}&language=fr-FR`).then(r=>r.json());const l=document.getElementById('episode-list');l.innerHTML='';seasonCache[s].episodes.forEach((ep,idx)=>{const isSeen=(s<tempProgress.s)||(s===tempProgress.s&&ep.episode_number<=tempProgress.e);const d=document.createElement('div');d.className=`flex justify-between items-center p-2.5 rounded-lg cursor-pointer ${isSeen?'bg-blue-900/20 border border-blue-500/20':'bg-slate-800 hover:bg-slate-700'}`;d.innerHTML=`<div class="flex items-center gap-3 overflow-hidden"><span class="text-xs font-bold text-gray-500 w-5">${ep.episode_number}</span><span class="text-xs font-medium text-white truncate">${ep.name}</span></div><i class="ph-fill ${isSeen?'ph-check-circle text-blue-500':'ph-circle text-gray-600'} text-lg"></i>`;d.onclick=()=>{tempProgress={s:s,e:ep.episode_number};const lastEp=(idx===seasonCache[s].episodes.length-1);if(lastEp&&s===tempItem.number_of_seasons){tempStatus='finished';tempNext=null;document.getElementById('status-badge').classList.remove('hidden');confetti({particleCount:150,spread:100,origin:{y:0.6}});}else{tempStatus='series_active';document.getElementById('status-badge').classList.add('hidden');tempNext=lastEp?{s:s+1,e:1}:{s:s,e:ep.episode_number+1};}tempEpsWatched=((s-1)*10)+ep.episode_number;loadEps(s);};l.appendChild(d);});}
-        window.saveItem = () => { if(!tempItem)return; const item={tmdb_id:tempItem.tmdb_id,title:tempItem.title||tempItem.name||"?",type:tempItem.type,poster:tempItem.poster_path||null,backdrop:tempItem.backdrop_path||null,runtime:tempItem.runtime||0,status:tempItem.type==='movie'?tempStatus:(tempStatus||'series_active'),rating:tempRating||0,progress:tempItem.type==='tv'?(tempProgress||null):null,next:tempItem.type==='tv'?(tempNext||null):null,epsWatched:tempItem.type==='tv'?(tempEpsWatched||0):0};const idx=library.findIndex(i=>i.tmdb_id===item.tmdb_id);if(idx>=0)library[idx]=item;else library.unshift(item);localStorage.setItem(DB_KEY,JSON.stringify(library));saveToCloud();refreshStats();renderLibrary();closeModal();window.switchTab(currentTab==='search'?'home':currentTab); };
+        
+        window.saveItem = () => { if(!tempItem)return; 
+            const item={
+                tmdb_id:tempItem.tmdb_id,title:tempItem.title||tempItem.name||"?",type:tempItem.type,poster:tempItem.poster_path||null,backdrop:tempItem.backdrop_path||null,runtime:tempItem.runtime||0,
+                status:tempItem.type==='movie'?tempStatus:(tempStatus||'series_active'),rating:tempRating||0,progress:tempItem.type==='tv'?(tempProgress||null):null,
+                next:tempItem.type==='tv'?(tempNext||null):null,epsWatched:tempItem.type==='tv'?(tempEpsWatched||0):0,
+                date: Date.now(), // FOR TIMELINE
+                origin: tempItem.origin_country || [] // FOR PASSPORT
+            };
+            const idx=library.findIndex(i=>i.tmdb_id===item.tmdb_id);if(idx>=0)library[idx]=item;else library.unshift(item);
+            localStorage.setItem(DB_KEY,JSON.stringify(library));saveToCloud();refreshStats();renderLibrary();closeModal();window.switchTab(currentTab==='search'?'home':currentTab); 
+        };
         window.toggleSettings=()=>document.getElementById('settings-modal').classList.toggle('hidden'); window.resetAll=()=>{if(confirm("Effacer tout ?")){localStorage.removeItem(DB_KEY);location.reload();}};
         window.exportData = () => { const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library)); const dlAnchorElem = document.createElement('a'); dlAnchorElem.setAttribute("href", dataStr); dlAnchorElem.setAttribute("download", "cinetrack_backup.json"); dlAnchorElem.click(); };
         window.importData = (input) => { const file = input.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(e) { try { const data = JSON.parse(e.target.result); if(Array.isArray(data)){ library = data; localStorage.setItem(DB_KEY, JSON.stringify(library)); saveToCloud(); alert("Restauration réussie !"); location.reload(); } else alert("Fichier invalide"); } catch(err){ alert("Erreur fichier"); } }; reader.readAsText(file); };
