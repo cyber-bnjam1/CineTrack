@@ -189,7 +189,7 @@
             <img id="m-img" src="" class="w-full h-full object-cover">
             <div class="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-transparent to-transparent"></div>
             
-            <button onclick="window.closeModal()" class="absolute top-10 right-5 w-10 h-10 bg-black/40 backdrop-blur rounded-full flex items-center justify-center text-white click-bounce shadow-lg border border-white/10 z-50">
+            <button onclick="window.closeModal()" class="absolute top-16 right-5 w-10 h-10 bg-black/40 backdrop-blur rounded-full flex items-center justify-center text-white click-bounce shadow-lg border border-white/10 z-50">
                 <i class="ph-bold ph-x text-lg"></i>
             </button>
             <div class="absolute bottom-0 w-full p-6">
@@ -274,7 +274,7 @@
         const firebaseConfig = { apiKey: "AIzaSyBasFR8ZaxPt05lU6TgGEz_Qf-hnzV6_No", authDomain: "cinetrack-dd7c1.firebaseapp.com", projectId: "cinetrack-dd7c1", storageBucket: "cinetrack-dd7c1.firebasestorage.app", messagingSenderId: "816079795855", appId: "1:816079795855:web:d5e620ca45d7ed685222fa" };
         let app, auth, db, user = null; try { app = initializeApp(firebaseConfig); auth = getAuth(app); db = getFirestore(app); console.log("Firebase OK"); } catch(e) { console.warn("Firebase Init Error", e); }
 
-        const API_KEY = '3fd2be6f0c70a2a598f084ddfb75487c'; const BASE_URL = 'https://api.themoviedb.org/3'; const IMG_URL = 'https://image.tmdb.org/t/p/w300'; const IMG_HD = 'https://image.tmdb.org/t/p/w780'; const DB_KEY = 'cinetrack_v31_buttonfix';
+        const API_KEY = '3fd2be6f0c70a2a598f084ddfb75487c'; const BASE_URL = 'https://api.themoviedb.org/3'; const IMG_URL = 'https://image.tmdb.org/t/p/w300'; const IMG_HD = 'https://image.tmdb.org/t/p/w780'; const DB_KEY = 'cinetrack_v32_final_fix';
         let library = JSON.parse(localStorage.getItem(DB_KEY)) || []; let tempItem, tempStatus, tempRating, tempProgress, tempNext, tempEpsWatched; let currentTab = 'home'; let seasonCache = {}; let myChart = null;
 
         window.loginGoogle = async () => { if(!auth) return alert("Err Firebase"); try { await signInWithPopup(auth, new GoogleAuthProvider()); window.toggleSettings(); } catch(e) { alert(e.message); } };
