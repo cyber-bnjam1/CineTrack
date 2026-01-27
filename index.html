@@ -92,7 +92,6 @@
             content: ''; position: absolute; right: 0; top: 20%; height: 60%; width: 1px; background: rgba(255,255,255,0.1);
         }
         .dash-val { font-size: 16px; font-weight: 800; color: white; line-height: 1.2; }
-        /* Ajustement taille police pour le temps si c'est long */
         #stat-time { font-size: 13px; } 
         .dash-lbl { font-size: 9px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
 
@@ -310,8 +309,8 @@
         </div>
     </div>
 
-    <script>
-        // UI HELPERS - DEFINIS ICI POUR TOUJOURS MARCHER
+    <script type="module">
+        // 1. GLOBAL UI EXPORTS (MUST BE FIRST)
         window.switchTab = (t) => {
             ['home','movies','series','search','stats','journal'].forEach(k => document.getElementById('nav-'+k).classList.remove('active'));
             document.getElementById('nav-'+t).classList.add('active');
@@ -323,51 +322,68 @@
             else if(t === 'journal') { document.getElementById('view-journal').classList.remove('hidden'); if(window.renderJournal) window.renderJournal(); }
             else { document.getElementById('view-library').classList.remove('hidden'); if(window.renderLibrary) window.renderLibrary(); }
         };
-        
+
         window.toggleSettings = () => { const s=document.getElementById('settings-modal'); if(s.style.display==='none'||s.classList.contains('hidden')) {s.style.display='flex';s.classList.remove('hidden');} else {s.style.display='none';s.classList.add('hidden');} };
         window.closeBadge = () => { document.getElementById('badge-modal').style.display='none'; document.getElementById('badge-modal').classList.add('hidden'); };
         window.closeModal = () => { const s=document.getElementById('modal-sheet'),o=document.getElementById('modal-overlay'); if(window.innerWidth>=640)s.classList.add('sm:translate-x-full'); else s.classList.add('translate-y-full'); setTimeout(()=>{s.classList.add('hidden');o.classList.add('hidden');},300); };
-        window.resetAll = () => { if(confirm("Effacer tout ?")){localStorage.removeItem('cinetrack_v37_safe');location.reload();} };
-    </script>
+        window.resetAll = () => { if(confirm("Effacer tout ?")){localStorage.removeItem('cinetrack_v39_fix');location.reload();} };
 
-    <script type="module">
+        // 2. DATA SANITIZATION (PREVENT CRASH)
+        const DB_KEY = 'cinetrack_v39_fix';
+        let rawData = localStorage.getItem(DB_KEY);
+        let library = [];
+        try {
+            library = JSON.parse(rawData) || [];
+            if(!Array.isArray(library)) library = [];
+        } catch(e) { library = []; }
+        // Ensure critical fields exist
+        library = library.map(i => ({...i, genres: Array.isArray(i.genres)?i.genres:[], origin: Array.isArray(i.origin)?i.origin:[] }));
+        localStorage.setItem(DB_KEY, JSON.stringify(library));
+
+        // 3. FIREBASE (FAIL-SAFE)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // FIREBASE SETUP
         const firebaseConfig = { apiKey: "AIzaSyBasFR8ZaxPt05lU6TgGEz_Qf-hnzV6_No", authDomain: "cinetrack-dd7c1.firebaseapp.com", projectId: "cinetrack-dd7c1", storageBucket: "cinetrack-dd7c1.firebasestorage.app", messagingSenderId: "816079795855", appId: "1:816079795855:web:d5e620ca45d7ed685222fa" };
         let app, auth, db, user = null; 
-        try { app = initializeApp(firebaseConfig); auth = getAuth(app); db = getFirestore(app); console.log("Firebase OK"); } catch(e) { console.warn("Firebase Init Error", e); }
+        try { app = initializeApp(firebaseConfig); auth = getAuth(app); db = getFirestore(app); console.log("Firebase Init OK"); } catch(e) { console.warn("Firebase Failed", e); }
 
-        // VARS & SANITIZATION
-        const API_KEY = '3fd2be6f0c70a2a598f084ddfb75487c'; const BASE_URL = 'https://api.themoviedb.org/3'; const IMG_URL = 'https://image.tmdb.org/t/p/w300'; const IMG_HD = 'https://image.tmdb.org/t/p/w780'; const DB_KEY = 'cinetrack_v37_safe';
-        
-        let library = JSON.parse(localStorage.getItem(DB_KEY)) || [];
-        library = library.map(i => ({...i, genres: i.genres || [], origin: i.origin || [] }));
-        localStorage.setItem(DB_KEY, JSON.stringify(library));
-
+        // 4. LOGIC
+        const API_KEY = '3fd2be6f0c70a2a598f084ddfb75487c'; const BASE_URL = 'https://api.themoviedb.org/3'; const IMG_URL = 'https://image.tmdb.org/t/p/w300'; const IMG_HD = 'https://image.tmdb.org/t/p/w780';
         let tempItem, tempStatus, tempRating, tempProgress, tempNext, tempEpsWatched; let seasonCache = {}; let myChart = null;
 
-        // AUTH
-        window.loginGoogle = async () => { if(!auth) return alert("Err Firebase"); try { await signInWithPopup(auth, new GoogleAuthProvider()); window.toggleSettings(); } catch(e) { alert(e.message); } };
+        // Auth Logic
+        window.loginGoogle = async () => { if(!auth) return alert("Service indisponible (Hors ligne)"); try { await signInWithPopup(auth, new GoogleAuthProvider()); window.toggleSettings(); } catch(e) { alert("Erreur: " + e.message); } };
         window.logoutGoogle = async () => { if(!auth) return; await signOut(auth); user = null; updateUserUI(); alert("Déconnecté"); window.toggleSettings(); };
-        if(auth) { onAuthStateChanged(auth, async (u) => { user = u; updateUserUI(); if (user) { try { const snap = await getDoc(doc(db, "users", user.uid)); if (snap.exists()) { 
-            let cloudLib = snap.data().library || []; 
-            library = cloudLib.map(i => ({...i, genres: i.genres || [], origin: i.origin || [] }));
-            localStorage.setItem(DB_KEY, JSON.stringify(library)); 
-            renderLibrary(); refreshStats(); 
-        } else { saveToCloud(); } } catch(e) { console.error(e); } } }); }
+        if(auth) { onAuthStateChanged(auth, async (u) => { user = u; updateUserUI(); if (user && db) { try { const snap = await getDoc(doc(db, "users", user.uid)); if (snap.exists()) { let cloudLib = snap.data().library || []; library = cloudLib.map(i => ({...i, genres: i.genres||[], origin: i.origin||[] })); localStorage.setItem(DB_KEY, JSON.stringify(library)); renderLibrary(); refreshStats(); } else { saveToCloud(); } } catch(e) { console.error(e); } } }); }
         
         async function saveToCloud() { if(user && db) try { await setDoc(doc(db, "users", user.uid), { library }); } catch(e){} }
-        function updateUserUI() { const elIds = ['online-indicator','header-avatar','user-info','btn-logout']; const hideIds = ['btn-login']; elIds.forEach(id => document.getElementById(id).classList.toggle('hidden', !user)); hideIds.forEach(id => document.getElementById(id).classList.toggle('hidden', !!user)); if(user) { document.getElementById('user-email').innerText = user.email; document.getElementById('user-avatar').innerText = user.email[0].toUpperCase(); document.getElementById('header-avatar').innerText = user.email[0].toUpperCase(); } }
+        function updateUserUI() { 
+            const indicator = document.getElementById('online-indicator');
+            if(indicator) indicator.classList.toggle('hidden', !user);
+            const userInfo = document.getElementById('user-info');
+            if(userInfo) userInfo.classList.toggle('hidden', !user);
+            const btnLogin = document.getElementById('btn-login');
+            if(btnLogin) btnLogin.classList.toggle('hidden', !!user);
+            const btnLogout = document.getElementById('btn-logout');
+            if(btnLogout) btnLogout.classList.toggle('hidden', !user);
+            
+            if(user) { 
+                document.getElementById('user-email').innerText = user.email; 
+                document.getElementById('user-avatar').innerText = user.email[0].toUpperCase(); 
+                document.getElementById('header-avatar').innerText = user.email[0].toUpperCase();
+                document.getElementById('header-avatar').classList.remove('hidden');
+            } else {
+                document.getElementById('header-avatar').classList.add('hidden');
+            }
+        }
 
-        // EXPORT TO WINDOW
+        // EXPORT RENDERS
         window.renderLibrary = renderLibrary;
         window.renderJournal = renderJournal;
         window.renderStatsView = renderStatsView;
 
-        // RENDER LIBRARY (CORRECTION BUG SERIE)
         function renderLibrary() {
             const grid = document.getElementById('library-grid'); const resumeSection = document.getElementById('resume-section'); const resumeList = document.getElementById('resume-list'); grid.innerHTML = ''; resumeList.innerHTML = ''; 
             const currentTab = document.querySelector('.nav-btn.active').id.replace('nav-','');
@@ -388,7 +404,7 @@
             } else { 
                 resumeSection.classList.add('hidden'); 
                 if (currentTab === 'movies') itemsToShow = library.filter(i => i.type === 'movie' && i.status === 'watched'); 
-                // CORRECTION ICI : On affiche les séries si elles sont 'finished' OU 'watched'
+                // FILTER FIX HERE
                 else if (currentTab === 'series') itemsToShow = library.filter(i => i.type === 'tv' && (i.status === 'finished' || i.status === 'watched')); 
             } 
             if (itemsToShow.length === 0) { document.getElementById('empty-state').classList.remove('hidden'); } else { document.getElementById('empty-state').classList.add('hidden'); itemsToShow.forEach(i => { const d = document.createElement('div'); d.className = "relative aspect-[2/3] bg-slate-800 rounded-xl overflow-hidden shadow-lg animate-pop cursor-pointer"; const img = i.poster ? IMG_URL+i.poster : ''; let badge = ''; if(i.status === 'towatch') badge = `<div class="absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_8px_#3b82f6]"></div>`; if(i.status === 'finished' || i.status === 'watched') badge = `<div class="absolute top-2 right-2 px-1 py-0.5 bg-yellow-400 text-black text-[7px] font-black rounded shadow">FINI</div>`; d.innerHTML = `<img src="${img}" class="w-full h-full object-cover opacity-90" onerror="this.style.display='none'">${badge}<button class="absolute inset-0" onclick="window.openDetails('${i.tmdb_id}','${i.type}')"></button>`; grid.appendChild(d); }); } 
@@ -420,8 +436,6 @@
                 const cntM = library.filter(i=>i.type==='movie'&&i.status==='watched').length;
                 const cntS = library.filter(i=>i.type==='tv'&&i.status==='finished').length;
                 const cntTot = library.length;
-                
-                // SAFE HELPERS
                 const countGenre = (gid) => library.filter(i => (i.genres||[]).includes(gid) && ['watched','finished'].includes(i.status)).length;
                 const countRating = (min, max) => library.filter(i => i.rating >= min && i.rating <= max).length;
 
@@ -523,13 +537,13 @@
                 genres: tempItem.genres ? tempItem.genres.map(g=>g.id) : []
             };
             const idx=library.findIndex(i=>i.tmdb_id===item.tmdb_id);if(idx>=0)library[idx]=item;else library.unshift(item);
-            localStorage.setItem(DB_KEY,JSON.stringify(library));saveToCloud();refreshStats();renderLibrary();closeModal();window.switchTab(currentTab==='search'?'home':currentTab); 
+            localStorage.setItem(DB_KEY,JSON.stringify(library));saveToCloud();refreshStats();renderLibrary();closeModal();window.switchTab(document.querySelector('.nav-btn.active').id.replace('nav-','')); 
         };
         
         window.exportData = () => { const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library)); const dlAnchorElem = document.createElement('a'); dlAnchorElem.setAttribute("href", dataStr); dlAnchorElem.setAttribute("download", "cinetrack_backup.json"); dlAnchorElem.click(); };
         window.importData = (input) => { const file = input.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(e) { try { const data = JSON.parse(e.target.result); if(Array.isArray(data)){ library = data; localStorage.setItem(DB_KEY, JSON.stringify(library)); saveToCloud(); alert("Restauration réussie !"); location.reload(); } else alert("Fichier invalide"); } catch(err){ alert("Erreur fichier"); } }; reader.readAsText(file); };
         
-        // --- NOUVEAU CALCULATEUR DE TEMPS (ANNEE/MOIS/JOUR/HEURE) ---
+        // REFRESH STATS (FORMAT Y/M/D/H)
         function refreshStats() { 
             let m=0,e=0,t=0; 
             library.forEach(i=>{ 
@@ -540,7 +554,6 @@
             document.getElementById('stat-movies').innerText=m; 
             document.getElementById('stat-eps').innerText=e; 
             
-            // Formatage intelligent
             let str = "0h";
             if(t > 0) {
                 const minInYear = 525600; const minInMonth = 43800; const minInDay = 1440;
