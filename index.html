@@ -472,6 +472,10 @@
         window.exportData = () => { const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library)); const dlAnchorElem = document.createElement('a'); dlAnchorElem.setAttribute("href", dataStr); dlAnchorElem.setAttribute("download", "cinetrack_backup.json"); dlAnchorElem.click(); };
         window.importData = (input) => { const file = input.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(e) { try { const data = JSON.parse(e.target.result); if(Array.isArray(data)){ library = data; localStorage.setItem(DB_KEY, JSON.stringify(library)); saveToCloud(); alert("Restauration réussie !"); location.reload(); } else alert("Fichier invalide"); } catch(err){ alert("Erreur fichier"); } }; reader.readAsText(file); };
         function refreshStats() { let m=0,e=0,t=0; library.forEach(i=>{ if(i.type==='movie'&&i.status==='watched'){m++;t+=(i.runtime||0);} if(i.type==='tv'){e+=(i.epsWatched||0);t+=((i.epsWatched||0)*(i.runtime||45));} }); document.getElementById('stat-movies').innerText=m; document.getElementById('stat-eps').innerText=e; document.getElementById('stat-time').innerText=`${Math.floor(t/60)}h`; }
+
+        // Rendu initial depuis localStorage, immédiat sans attendre Firebase
+        renderLibrary(); refreshStats();
+
         if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
     </script>
 </body>
